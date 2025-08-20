@@ -1,0 +1,40 @@
+server:
+  port: 8080
+  read_timeout: 15
+  write_timeout: 15
+  idle_timeout: 60
+
+database:
+  host: localhost
+  port: 5432
+  user: postgres
+  password: postgres
+  dbname: myapp
+  sslmode: disable
+
+redis:
+  host: localhost
+  port: 6379
+  password: ""
+  db: 0
+
+logger:
+  level: debug
+
+storage:
+  type: local
+  local_path: ./uploads
+  s3:
+    bucket: ""
+    region: ""
+    access_key: ""
+    secret_key: ""
+
+external_api:
+  base_url: https://jsonplaceholder.typicode.com
+  timeout: 30
+
+jwt:
+  secret_key: "your-secret-key-change-in-production"
+  expiration_hours: 24
+  refresh_expiration_hours: 168
