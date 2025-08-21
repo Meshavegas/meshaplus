@@ -14,6 +14,8 @@ NC='\033[0m'
 
 echo -e "${BLUE}🏗️ Test de Build - MeshaPlus Backend${NC}"
 echo "====================================="
+echo -e "${YELLOW}📋 Version Go: $(go version)${NC}"
+echo ""
 echo ""
 
 # Test 1: Vérifier le répertoire
