@@ -177,21 +177,12 @@ jobs:
         run: |
           pwd
           mkdir -p ~/.ssh
-          echo "VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}"
-          touch ~/.ssh/vps_key
-          touch ~/.ssh/known_hosts
-          touch log.txt
-          echo "VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}" >> log.txt
-          echo "VPS_HOST: ${{ secrets.VPS_HOST }}" >> log.txt
-          echo "VPS_USERNAME: ${{ secrets.VPS_USERNAME }}" >> log.txt
-          echo "VPS_DEPLOY_PATH: ${{ secrets.VPS_DEPLOY_PATH }}" >> log.txt
-          echo "SSH key length: $(wc -c < ~/.ssh/vps_key)" >> log.txt
-          cat ~/.ssh/vps_key >> log.txt
-          echo "SSH connection test: $(ssh -o ConnectTimeout=10 -i ~/.ssh/vps_key ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_HOST }} "echo 'SSH connection test successful'")" >> log.txt
-          chmod 600 ~/.ssh/vps_key
+          
+          # Écrire la clé SSH
           echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/vps_key
-          echo "VPS_SSH_KEY_PATH: ~/.ssh/vps_key"
           chmod 600 ~/.ssh/vps_key
+          
+          # Configurer known_hosts pour éviter "Host key verification failed"
           ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
           
           # Debug: Vérifier que les secrets sont définis
@@ -199,10 +190,9 @@ jobs:
           echo "VPS_USERNAME: ${{ secrets.VPS_USERNAME }}"
           echo "VPS_DEPLOY_PATH: ${{ secrets.VPS_DEPLOY_PATH }}"
           echo "SSH key length: $(wc -c < ~/.ssh/vps_key)"
-          cat ~/.ssh/vps_key
           
-          # Test de connexion SSH
-          ssh -o ConnectTimeout=10 -i ~/.ssh/vps_key ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_HOST }} "echo 'SSH connection test successful'"
+          # Test de connexion SSH avec StrictHostKeyChecking=no
+          ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 -i ~/.ssh/vps_key ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_HOST }} "echo 'SSH connection test successful'"
 
       - name: 📦 Download build artifacts
         uses: actions/download-artifact@v4
@@ -219,7 +209,11 @@ jobs:
           # - VPS_HOST: Adresse IP ou domaine du VPS
           # - VPS_USERNAME: Nom d'utilisateur SSH
           # - VPS_SSH_KEY: Clé SSH privée pour accéder au VPS
-          # - VPS_DEPLOY_PATH: Chemin de déploiement sur le VPS
+          # - VPS_DEPLOY_PATH: Chemin de déploiement sur le VPS (optionnel, défaut: /opt/meshaplus)
+          
+          # Définir le chemin de déploiement avec valeur par défaut
+          DEPLOY_PATH="${VPS_DEPLOY_PATH:-/opt/meshaplus}"
+          echo "Using deploy path: $DEPLOY_PATH"
           
           # Créer le fichier de configuration temporaire
           cat > docker-compose.prod.yml << EOF
@@ -322,13 +316,13 @@ jobs:
           echo "📡 Connecting to VPS..."
           
           # Copier les fichiers sur le VPS
-          scp -r -o StrictHostKeyChecking=no -i ~/.ssh/vps_key backend/ ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_HOST }}:${{ secrets.VPS_DEPLOY_PATH }}/
-          scp -o StrictHostKeyChecking=no -i ~/.ssh/vps_key docker-compose.prod.yml ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_HOST }}:${{ secrets.VPS_DEPLOY_PATH }}/
-          scp -o StrictHostKeyChecking=no -i ~/.ssh/vps_key nginx.conf ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_HOST }}:${{ secrets.VPS_DEPLOY_PATH }}/
+          scp -r -o StrictHostKeyChecking=no -i ~/.ssh/vps_key backend/ ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_HOST }}:${DEPLOY_PATH}/
+          scp -o StrictHostKeyChecking=no -i ~/.ssh/vps_key docker-compose.prod.yml ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_HOST }}:${DEPLOY_PATH}/
+          scp -o StrictHostKeyChecking=no -i ~/.ssh/vps_key nginx.conf ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_HOST }}:${DEPLOY_PATH}/
           
           # Exécuter le déploiement sur le VPS
-          ssh -o StrictHostKeyChecking=no -i ~/.ssh/vps_key ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_HOST }} << 'EOF'
-            cd ${{ secrets.VPS_DEPLOY_PATH }}
+          ssh -o StrictHostKeyChecking=no -i ~/.ssh/vps_key ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_HOST }} << EOF
+            cd ${DEPLOY_PATH}
             
             echo "🏗️ Building Docker image on VPS..."
             
@@ -433,6 +427,10 @@ jobs:
           echo "Build version: ${{ needs.build.outputs.build-version }}"
           
           # Déploiement sur VPS Ubuntu Staging avec build local
+          # Définir le chemin de déploiement avec valeur par défaut
+          DEPLOY_PATH="${VPS_DEPLOY_PATH:-/opt/meshaplus}"
+          echo "Using deploy path: $DEPLOY_PATH"
+          
           # Créer le fichier de configuration temporaire
           cat > docker-compose.staging.yml << EOF
           version: '3.8'
@@ -532,13 +530,13 @@ jobs:
           echo "📡 Connecting to staging VPS..."
           
           # Copier les fichiers sur le VPS
-          scp -r -o StrictHostKeyChecking=no -i ~/.ssh/vps_key backend/ ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_STAGING_HOST }}:${{ secrets.VPS_DEPLOY_PATH }}/
-          scp -o StrictHostKeyChecking=no -i ~/.ssh/vps_key docker-compose.staging.yml ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_STAGING_HOST }}:${{ secrets.VPS_DEPLOY_PATH }}/
-          scp -o StrictHostKeyChecking=no -i ~/.ssh/vps_key nginx-staging.conf ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_STAGING_HOST }}:${{ secrets.VPS_DEPLOY_PATH }}/
+          scp -r -o StrictHostKeyChecking=no -i ~/.ssh/vps_key backend/ ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_STAGING_HOST }}:${DEPLOY_PATH}/
+          scp -o StrictHostKeyChecking=no -i ~/.ssh/vps_key docker-compose.staging.yml ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_STAGING_HOST }}:${DEPLOY_PATH}/
+          scp -o StrictHostKeyChecking=no -i ~/.ssh/vps_key nginx-staging.conf ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_STAGING_HOST }}:${DEPLOY_PATH}/
           
           # Exécuter le déploiement sur le VPS
-          ssh -o StrictHostKeyChecking=no -i ~/.ssh/vps_key ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_STAGING_HOST }} << 'EOF'
-            cd ${{ secrets.VPS_DEPLOY_PATH }}
+          ssh -o StrictHostKeyChecking=no -i ~/.ssh/vps_key ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_STAGING_HOST }} << EOF
+            cd ${DEPLOY_PATH}
             
             echo "🏗️ Building Docker image on VPS..."
             
