@@ -58,12 +58,8 @@ jobs:
           go-version: ${{ env.GO_VERSION }}
           cache: true
 
-      - name: 📁 Setup working directory
-        run: |
-          cd backend
-          echo "Working directory: $(pwd)"
-
       - name: 📦 Install dependencies
+        working-directory: ./backend
         run: |
           go mod download
           go mod tidy
@@ -71,10 +67,12 @@ jobs:
           go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
 
       - name: 🔍 Lint code
+        working-directory: ./backend
         run: |
           golangci-lint run ./...
 
       - name: 🧪 Run tests
+        working-directory: ./backend
         run: |
           go test -v -race -coverprofile=coverage.out ./...
           go tool cover -func=coverage.out
@@ -87,11 +85,13 @@ jobs:
           name: backend-coverage
 
       - name: 📚 Generate Swagger docs
+        working-directory: ./backend
         run: |
           export PATH=$PATH:$(go env GOPATH)/bin
           swag init -g cmd/api/main.go -o ./docs
 
       - name: 🏗️ Build application
+        working-directory: ./backend
         run: |
           CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
             -ldflags='-w -s -extldflags "-static"' \
