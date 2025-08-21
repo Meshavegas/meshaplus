@@ -152,8 +152,13 @@ jobs:
         with:
           name: backend-build-${{ steps.version.outputs.version }}
           path: |
-            backend/bin/api
+            backend/bin/
             backend/meshaplus-backend-*.tar.gz
+            backend/configs/
+            backend/scripts/
+            backend/Dockerfile
+            backend/docker-compose.yml
+            backend/.env.example
           retention-days: 7
 
   # 🚀 Deploy to Production
@@ -293,10 +298,9 @@ jobs:
           echo "📡 Connecting to VPS..."
           
           # Copier les fichiers sur le VPS
-          scp -o StrictHostKeyChecking=no -i ~/.ssh/vps_key backend/bin/api ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_HOST }}:${{ secrets.VPS_DEPLOY_PATH }}/
+          scp -r -o StrictHostKeyChecking=no -i ~/.ssh/vps_key backend/ ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_HOST }}:${{ secrets.VPS_DEPLOY_PATH }}/
           scp -o StrictHostKeyChecking=no -i ~/.ssh/vps_key docker-compose.prod.yml ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_HOST }}:${{ secrets.VPS_DEPLOY_PATH }}/
           scp -o StrictHostKeyChecking=no -i ~/.ssh/vps_key nginx.conf ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_HOST }}:${{ secrets.VPS_DEPLOY_PATH }}/
-          scp -o StrictHostKeyChecking=no -i ~/.ssh/vps_key backend/Dockerfile ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_HOST }}:${{ secrets.VPS_DEPLOY_PATH }}/
           
           # Exécuter le déploiement sur le VPS
           ssh -o StrictHostKeyChecking=no -i ~/.ssh/vps_key ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_HOST }} << 'EOF'
@@ -305,7 +309,7 @@ jobs:
             echo "🏗️ Building Docker image on VPS..."
             
             # Construire l'image Docker localement sur le VPS
-            docker build -t meshaplus-backend:latest .
+            docker build -t meshaplus-backend:latest backend/
             
             # Arrêter les conteneurs existants
             docker-compose -f docker-compose.prod.yml down || true
@@ -313,11 +317,14 @@ jobs:
             # Supprimer l'ancienne image
             docker rmi meshaplus-backend:latest || true
             
+            # Copier le docker-compose.yml dans le répertoire backend
+            cp docker-compose.prod.yml backend/docker-compose.yml
+            
             # Démarrer les nouveaux conteneurs
-            docker-compose -f docker-compose.prod.yml up -d
+            cd backend && docker-compose up -d
             
             # Vérifier que les conteneurs sont en cours d'exécution
-            docker-compose -f docker-compose.prod.yml ps
+            docker-compose ps
             
             # Attendre que l'application soit prête
             sleep 30
@@ -501,10 +508,9 @@ jobs:
           echo "📡 Connecting to staging VPS..."
           
           # Copier les fichiers sur le VPS
-          scp -o StrictHostKeyChecking=no -i ~/.ssh/vps_key backend/bin/api ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_STAGING_HOST }}:${{ secrets.VPS_DEPLOY_PATH }}/
+          scp -r -o StrictHostKeyChecking=no -i ~/.ssh/vps_key backend/ ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_STAGING_HOST }}:${{ secrets.VPS_DEPLOY_PATH }}/
           scp -o StrictHostKeyChecking=no -i ~/.ssh/vps_key docker-compose.staging.yml ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_STAGING_HOST }}:${{ secrets.VPS_DEPLOY_PATH }}/
           scp -o StrictHostKeyChecking=no -i ~/.ssh/vps_key nginx-staging.conf ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_STAGING_HOST }}:${{ secrets.VPS_DEPLOY_PATH }}/
-          scp -o StrictHostKeyChecking=no -i ~/.ssh/vps_key backend/Dockerfile ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_STAGING_HOST }}:${{ secrets.VPS_DEPLOY_PATH }}/
           
           # Exécuter le déploiement sur le VPS
           ssh -o StrictHostKeyChecking=no -i ~/.ssh/vps_key ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_STAGING_HOST }} << 'EOF'
@@ -513,7 +519,7 @@ jobs:
             echo "🏗️ Building Docker image on VPS..."
             
             # Construire l'image Docker localement sur le VPS
-            docker build -t meshaplus-backend-staging:latest .
+            docker build -t meshaplus-backend-staging:latest backend/
             
             # Arrêter les conteneurs existants
             docker-compose -f docker-compose.staging.yml down || true
@@ -521,11 +527,14 @@ jobs:
             # Supprimer l'ancienne image
             docker rmi meshaplus-backend-staging:latest || true
             
+            # Copier le docker-compose.yml dans le répertoire backend
+            cp docker-compose.staging.yml backend/docker-compose.yml
+            
             # Démarrer les nouveaux conteneurs
-            docker-compose -f docker-compose.staging.yml up -d
+            cd backend && docker-compose up -d
             
             # Vérifier que les conteneurs sont en cours d'exécution
-            docker-compose -f docker-compose.staging.yml ps
+            docker-compose ps
             
             # Attendre que l'application soit prête
             sleep 30
