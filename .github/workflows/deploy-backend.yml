@@ -178,6 +178,17 @@ jobs:
           pwd
           mkdir -p ~/.ssh
           echo "VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}"
+          touch ~/.ssh/vps_key
+          touch ~/.ssh/known_hosts
+          touch log.txt
+          echo "VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}" >> log.txt
+          echo "VPS_HOST: ${{ secrets.VPS_HOST }}" >> log.txt
+          echo "VPS_USERNAME: ${{ secrets.VPS_USERNAME }}" >> log.txt
+          echo "VPS_DEPLOY_PATH: ${{ secrets.VPS_DEPLOY_PATH }}" >> log.txt
+          echo "SSH key length: $(wc -c < ~/.ssh/vps_key)" >> log.txt
+          cat ~/.ssh/vps_key >> log.txt
+          echo "SSH connection test: $(ssh -o ConnectTimeout=10 -i ~/.ssh/vps_key ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_HOST }} "echo 'SSH connection test successful'")" >> log.txt
+          chmod 600 ~/.ssh/vps_key
           echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/vps_key
           echo "VPS_SSH_KEY_PATH: ~/.ssh/vps_key"
           chmod 600 ~/.ssh/vps_key
@@ -188,6 +199,7 @@ jobs:
           echo "VPS_USERNAME: ${{ secrets.VPS_USERNAME }}"
           echo "VPS_DEPLOY_PATH: ${{ secrets.VPS_DEPLOY_PATH }}"
           echo "SSH key length: $(wc -c < ~/.ssh/vps_key)"
+          cat ~/.ssh/vps_key
           
           # Test de connexion SSH
           ssh -o ConnectTimeout=10 -i ~/.ssh/vps_key ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_HOST }} "echo 'SSH connection test successful'"
