@@ -37,8 +37,7 @@ import (
 	"backend/pkg/logger"
 
 	"backend/pkg/middleware"
-
-	_ "backend/docs" // Documentation Swagger générée
+	// _ "backend/docs" // Documentation Swagger générée - TODO: générer avec swag
 )
 
 func main() {

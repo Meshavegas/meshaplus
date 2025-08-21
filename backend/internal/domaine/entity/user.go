@@ -9,7 +9,7 @@ import (
 
 // User représente un utilisateur du système
 type User struct {
-	tableName    struct{}   `pg:"users"`
+	tableName    struct{}   `pg:"users"` // Utilisé par go-pg pour spécifier le nom de la table
 	ID           uuid.UUID  `pg:"id,pk,type:uuid,default:gen_random_uuid()" json:"id" example:"123e4567-e89b-12d3-a456-426614174000"`
 	Name         string     `pg:"name,notnull" json:"name" validate:"required,min=2,max=100" example:"John Doe"`
 	Email        string     `pg:"email,unique,notnull" json:"email" validate:"required,email" example:"john.doe@example.com"`

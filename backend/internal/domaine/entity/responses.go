@@ -113,7 +113,7 @@ type DashboardResponse struct {
 }
 
 type MoodResponse struct {
-	MoodAverage string `json:mood_average`
+	MoodAverage string `json:"mood_average"`
 }
 
 type TasksOverview struct {
