@@ -16,9 +16,9 @@ RUN go mod download
 # Copy source code
 COPY . .
 
-# Generate Swagger documentation
-RUN go install github.com/swaggo/swag/cmd/swag@latest && \
-    swag init -g cmd/api/main.go -o ./docs
+# Generate Swagger documentation (temporarily disabled)
+# RUN go install github.com/swaggo/swag/cmd/swag@latest && \
+#     swag init -g cmd/api/main.go -o ./docs
 
 # Build the application
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
@@ -45,7 +45,7 @@ COPY --from=builder /app/bin/api .
 
 # Copy configuration files
 COPY --from=builder /app/configs ./configs
-COPY --from=builder /app/docs ./docs
+# COPY --from=builder /app/docs ./docs  # Temporarily disabled
 
 # Create uploads directory
 RUN mkdir -p uploads && \
