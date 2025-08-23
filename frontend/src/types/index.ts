@@ -5,8 +5,8 @@ export interface User {
   email: string
   name: string
   avatar?: string
-  createdAt: Date
-  updatedAt: Date
+  created_at: Date
+  updated_at: Date
 }
 
 export interface Expense {

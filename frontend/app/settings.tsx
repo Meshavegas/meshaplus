@@ -1,7 +1,11 @@
-import { ScreenContent } from '@/components/ScreenContent';
+// import { ScreenContent } from '@/components/ScreenContent';
+
+import { View, Text } from "react-native";
 
 export default function Settings() {
   return (
-    <ScreenContent title="Settings" path="app/settings.tsx" />
+    <View>
+      <Text>Settings</Text>
+    </View>
   );
 } 

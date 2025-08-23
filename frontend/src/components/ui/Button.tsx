@@ -5,7 +5,8 @@ import Animated, {
   useAnimatedStyle, 
   withSpring,
   withTiming,
-  interpolateColor
+  interpolateColor,
+  runOnUI
 } from 'react-native-reanimated'
 import { colors, spacing, borderRadius, typography, shadows } from '@/src/theme'
 
@@ -40,6 +41,8 @@ export const Button: React.FC<ButtonProps> = ({
   const scale = useSharedValue(1)
 
   const animatedStyle = useAnimatedStyle(() => {
+    'worklet'
+    const variantColors = getVariantColor(variant)
     return {
       transform: [
         { scale: scale.value },
@@ -48,8 +51,8 @@ export const Button: React.FC<ButtonProps> = ({
         pressed.value,
         [0, 1],
         [
-          getVariantColor(variant).background,
-          getVariantColor(variant).pressed,
+          variantColors.background,
+          variantColors.pressed,
         ]
       ),
     }
@@ -101,6 +104,7 @@ export const Button: React.FC<ButtonProps> = ({
 }
 
 const getVariantColor = (variant: string) => {
+  'worklet'
   switch (variant) {
     case 'primary':
       return {

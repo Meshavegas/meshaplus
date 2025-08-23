@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 import { User } from '@/src/types'
 import { storage } from '@/src/services/storage/mmkv'
+import authApi from '../services/authService/authApi'
 
 interface AuthState {
   user: User | null
@@ -20,25 +21,13 @@ interface AuthActions {
   setLoading: (loading: boolean) => void
   setError: (error: string | null) => void
   clearError: () => void
+  initializeAuth: () => void
 }
 
 type AuthStore = AuthState & AuthActions
 
 // Storage personnalisé pour MMKV
-const mmkvStorage = {
-  getItem: (name: string) => {
-    const value = storage.getString(name)
-    return Promise.resolve(value ? JSON.parse(value) : null)
-  },
-  setItem: (name: string, value: string) => {
-    storage.set(name, value)
-    return Promise.resolve()
-  },
-  removeItem: (name: string) => {
-    storage.delete(name)
-    return Promise.resolve()
-  },
-}
+
 
 export const useAuthStore = create<AuthStore>()(
   persist(
@@ -54,30 +43,33 @@ export const useAuthStore = create<AuthStore>()(
       login: async (email: string, password: string) => {
         set({ isLoading: true, error: null })
         try {
-          // TODO: Appel API de connexion
-          // const response = await authApi.login(email, password)
-          // set({ user: response.user, token: response.token, isAuthenticated: true })
-          
-          // Simulation pour l'instant
-          const mockUser: User = {
-            id: '1',
-            email,
-            name: 'John Doe',
-            createdAt: new Date(),
-            updatedAt: new Date(),
+          const response = await authApi.login(email, password)
+          console.log('login response:', response)
+
+          // Vérifier que la réponse contient les données nécessaires
+          if (response && response.data) {
+            const user = response.data.user
+            const token = response.data.access_token
+
+            if (user && token) {
+              set({
+                user,
+                token,
+                isAuthenticated: true,
+                isLoading: false,
+                error: null
+              })
+            } else {
+              throw new Error('Données de connexion invalides')
+            }
+          } else {
+            throw new Error('Réponse invalide du serveur')
           }
-          const mockToken = 'mock-jwt-token'
-          
-          set({ 
-            user: mockUser, 
-            token: mockToken, 
-            isAuthenticated: true,
-            isLoading: false 
-          })
         } catch (error) {
-          set({ 
+          console.error('Login error:', error)
+          set({
             error: error instanceof Error ? error.message : 'Erreur de connexion',
-            isLoading: false 
+            isLoading: false
           })
         }
       },
@@ -88,37 +80,37 @@ export const useAuthStore = create<AuthStore>()(
           // TODO: Appel API d'inscription
           // const response = await authApi.register(userData)
           // set({ user: response.user, token: response.token, isAuthenticated: true })
-          
+
           // Simulation pour l'instant
           const mockUser: User = {
             id: '1',
             email: userData.email,
             name: userData.name,
-            createdAt: new Date(),
-            updatedAt: new Date(),
+            created_at: new Date(),
+            updated_at: new Date(),
           }
           const mockToken = 'mock-jwt-token'
-          
-          set({ 
-            user: mockUser, 
-            token: mockToken, 
+
+          set({
+            user: mockUser,
+            token: mockToken,
             isAuthenticated: true,
-            isLoading: false 
+            isLoading: false
           })
         } catch (error) {
-          set({ 
+          set({
             error: error instanceof Error ? error.message : 'Erreur d\'inscription',
-            isLoading: false 
+            isLoading: false
           })
         }
       },
 
       logout: () => {
-        set({ 
-          user: null, 
-          token: null, 
+        set({
+          user: null,
+          token: null,
           isAuthenticated: false,
-          error: null 
+          error: null
         })
       },
 
@@ -141,10 +133,38 @@ export const useAuthStore = create<AuthStore>()(
       clearError: () => {
         set({ error: null })
       },
+
+      initializeAuth: () => {
+        // Cette fonction peut être appelée au démarrage de l'app
+        // pour vérifier si l'utilisateur est déjà connecté
+        const state = get()
+        if (state.token && state.user) {
+          console.log('User already authenticated:', state.user.email)
+          // Optionnel: Vérifier la validité du token ici
+          // await validateToken(state.token)
+        } else {
+          console.log('No authenticated user found')
+          // Nettoyer l'état si nécessaire
+          if (state.isAuthenticated) {
+            set({
+              user: null,
+              token: null,
+              isAuthenticated: false,
+              error: null
+            })
+          }
+        }
+      },
     }),
     {
       name: 'auth-storage',
-      storage: createJSONStorage(() => mmkvStorage),
+      storage: createJSONStorage(() => (
+        {
+          getItem: (name: string) => storage.getString(name) ?? null,
+          setItem: (name: string, value: string) => storage.set(name, value),
+          removeItem: (name: string) => storage.delete(name),
+        }
+      )),
       partialize: (state) => ({
         user: state.user,
         token: state.token,

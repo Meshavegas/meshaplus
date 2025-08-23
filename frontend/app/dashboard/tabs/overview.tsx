@@ -1,10 +1,12 @@
-import React from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StatusBar } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SyncStatus } from '@/src/components/ui/SyncStatus';
 import CircularProgress from '@/src/components/ui/CircularProgress';
+import { useAuthStore } from '@/src';
 
 export default function Overview() {
+  const { user } = useAuthStore()
+  
   return (
     <ScrollView className="flex-1 bg-gray-50 mt-safe">
       <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
@@ -14,7 +16,10 @@ export default function Overview() {
           <View className='h-12 w-12 bg-primary items-center justify-center rounded-full'> 
             <Text className="text-2xl font-bold text-white">MV</Text>
           </View>
-          <Text className="text-2xl font-bold text-gray-900">Mesha vegas</Text>
+          <View className='flex-col'>
+          <Text className="text-md font-bold text-gray-900">{user?.name}</Text>
+          <Text className="text-xs text-gray-500">Bienvenue sur votre tableau de bord</Text>
+          </View>
         </View>
           <SyncStatus />
         </View>
@@ -24,7 +29,7 @@ export default function Overview() {
          
           
             <View className='flex-row items-center bg-primary/30 '>
-              <CircularProgress size={60} text='3/5'textSize={15}/>
+              <CircularProgress progressPercent={30} size={60} strokeWidth={10} text='3/5' textSize={20}/>
               <View className=' flex flex-col gap-2'>
               <Text className="text-md font-bold text-gray-900 ">Taches</Text>
               <Text>Ranger la chambre</Text>

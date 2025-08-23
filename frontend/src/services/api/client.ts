@@ -114,6 +114,10 @@ export const apiHelpers = {
     const response = await apiClient.delete<T>(url, config)
     return response.data
   },
+  //set token
+  setToken: (token: string) => {
+    apiClient.defaults.headers.common['Authorization'] = `Bearer ${token}`
+  }
 }
 
 // Clés de cache pour TanStack Query
