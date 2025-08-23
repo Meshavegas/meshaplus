@@ -300,8 +300,8 @@ jobs:
             
             echo "🏗️ Building Docker image on VPS..."
             
-            # Construire l'image Docker localement sur le VPS
-            docker build -t meshaplus-backend:latest backend/
+            # Construire l'image Docker localement sur le VPS avec buildx
+            docker buildx build --platform linux/amd64 -t meshaplus-backend:latest backend/ --load
             
             # Arrêter les conteneurs existants
             docker-compose -f docker-compose.prod.yml down || true
@@ -319,10 +319,23 @@ jobs:
             docker-compose ps
             
             # Attendre que l'application soit prête
-            sleep 30
+            echo "⏳ Attente du démarrage de l'application..."
+            for i in {1..60}; do
+                if curl -f http://localhost:8189/api/v1/health > /dev/null 2>&1; then
+                    echo "✅ Application démarrée avec succès!"
+                    break
+                fi
+                echo "⏳ Tentative $i/60..."
+                sleep 5
+            done
             
-            # Test de santé
-            curl -f http://localhost:8189/api/v1/health || exit 1
+            # Test de santé final
+            curl -f http://localhost:8189/api/v1/health || {
+                echo "❌ Application non accessible"
+                echo "📋 Logs des conteneurs:"
+                docker-compose logs
+                exit 1
+            }
             
             echo "✅ Production deployment completed successfully!"
           EOF
@@ -502,8 +515,8 @@ jobs:
             
             echo "🏗️ Building Docker image on VPS..."
             
-            # Construire l'image Docker localement sur le VPS
-            docker build -t meshaplus-backend-staging:latest backend/
+            # Construire l'image Docker localement sur le VPS avec buildx
+            docker buildx build --platform linux/amd64 -t meshaplus-backend-staging:latest backend/ --load
             
             # Arrêter les conteneurs existants
             docker-compose -f docker-compose.staging.yml down || true
@@ -521,10 +534,23 @@ jobs:
             docker-compose ps
             
             # Attendre que l'application soit prête
-            sleep 30
+            echo "⏳ Attente du démarrage de l'application..."
+            for i in {1..60}; do
+                if curl -f http://localhost:8189/api/v1/health > /dev/null 2>&1; then
+                    echo "✅ Application démarrée avec succès!"
+                    break
+                fi
+                echo "⏳ Tentative $i/60..."
+                sleep 5
+            done
             
-            # Test de santé
-            curl -f http://localhost:8189/api/v1/health || exit 1
+            # Test de santé final
+            curl -f http://localhost:8189/api/v1/health || {
+                echo "❌ Application non accessible"
+                echo "📋 Logs des conteneurs:"
+                docker-compose logs
+                exit 1
+            }
             
             echo "✅ Staging deployment completed successfully!"
           EOF
