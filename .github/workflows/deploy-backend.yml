@@ -191,8 +191,22 @@ jobs:
           echo "VPS_DEPLOY_PATH: ${{ secrets.VPS_DEPLOY_PATH }}"
           echo "SSH key length: $(wc -c < ~/.ssh/vps_key)"
           
-          # Test de connexion SSH avec StrictHostKeyChecking=no
-          ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 -i ~/.ssh/vps_key ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_HOST }} "echo 'SSH connection test successful'"
+          # Vérifier que la clé SSH est valide
+          if [ ! -s ~/.ssh/vps_key ]; then
+            echo "❌ Error: SSH key is empty or invalid"
+            exit 1
+          fi
+          
+          # Test de connexion SSH avec plus de debug
+          echo "🔍 Testing SSH connection..."
+          ssh -v -o StrictHostKeyChecking=no -o ConnectTimeout=30 -i ~/.ssh/vps_key ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_HOST }} "echo 'SSH connection test successful'" || {
+            echo "❌ SSH connection failed"
+            echo "🔍 Debug info:"
+            echo "  - SSH key exists: $(test -f ~/.ssh/vps_key && echo 'Yes' || echo 'No')"
+            echo "  - SSH key permissions: $(ls -la ~/.ssh/vps_key)"
+            echo "  - SSH key content (first 50 chars): $(head -c 50 ~/.ssh/vps_key)"
+            exit 1
+          }
 
       - name: 📦 Download build artifacts
         uses: actions/download-artifact@v4
@@ -212,8 +226,13 @@ jobs:
           # - VPS_DEPLOY_PATH: Chemin de déploiement sur le VPS (optionnel, défaut: /opt/meshaplus)
           
           # Définir le chemin de déploiement avec valeur par défaut
-          DEPLOY_PATH="${VPS_DEPLOY_PATH:-/opt/meshaplus}"
-          echo "Using deploy path: $DEPLOY_PATH"
+          DEPLOY_PATH="${{ secrets.VPS_DEPLOY_PATH }}"
+          if [ -z "$DEPLOY_PATH" ]; then
+            DEPLOY_PATH="/opt/meshaplus"
+            echo "⚠️ VPS_DEPLOY_PATH not set, using default: $DEPLOY_PATH"
+          else
+            echo "✅ Using VPS_DEPLOY_PATH: $DEPLOY_PATH"
+          fi
           
           # Créer le fichier de configuration temporaire
           cat > docker-compose.prod.yml << EOF
@@ -412,9 +431,35 @@ jobs:
       - name: 🔑 Setup SSH
         run: |
           mkdir -p ~/.ssh
+          
+          # Écrire la clé SSH
           echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/vps_key
           chmod 600 ~/.ssh/vps_key
+          
+          # Configurer known_hosts pour éviter "Host key verification failed"
           ssh-keyscan -H ${{ secrets.VPS_STAGING_HOST }} >> ~/.ssh/known_hosts
+          
+          # Debug: Vérifier que les secrets sont définis
+          echo "VPS_STAGING_HOST: ${{ secrets.VPS_STAGING_HOST }}"
+          echo "VPS_USERNAME: ${{ secrets.VPS_USERNAME }}"
+          echo "SSH key length: $(wc -c < ~/.ssh/vps_key)"
+          
+          # Vérifier que la clé SSH est valide
+          if [ ! -s ~/.ssh/vps_key ]; then
+            echo "❌ Error: SSH key is empty or invalid"
+            exit 1
+          fi
+          
+          # Test de connexion SSH avec plus de debug
+          echo "🔍 Testing SSH connection to staging..."
+          ssh -v -o StrictHostKeyChecking=no -o ConnectTimeout=30 -i ~/.ssh/vps_key ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_STAGING_HOST }} "echo 'SSH connection test successful'" || {
+            echo "❌ SSH connection failed"
+            echo "🔍 Debug info:"
+            echo "  - SSH key exists: $(test -f ~/.ssh/vps_key && echo 'Yes' || echo 'No')"
+            echo "  - SSH key permissions: $(ls -la ~/.ssh/vps_key)"
+            echo "  - SSH key content (first 50 chars): $(head -c 50 ~/.ssh/vps_key)"
+            exit 1
+          }
 
       - name: 📦 Download build artifacts
         uses: actions/download-artifact@v4
@@ -428,8 +473,13 @@ jobs:
           
           # Déploiement sur VPS Ubuntu Staging avec build local
           # Définir le chemin de déploiement avec valeur par défaut
-          DEPLOY_PATH="${VPS_DEPLOY_PATH:-/opt/meshaplus}"
-          echo "Using deploy path: $DEPLOY_PATH"
+          DEPLOY_PATH="${{ secrets.VPS_DEPLOY_PATH }}"
+          if [ -z "$DEPLOY_PATH" ]; then
+            DEPLOY_PATH="/opt/meshaplus"
+            echo "⚠️ VPS_DEPLOY_PATH not set, using default: $DEPLOY_PATH"
+          else
+            echo "✅ Using VPS_DEPLOY_PATH: $DEPLOY_PATH"
+          fi
           
           # Créer le fichier de configuration temporaire
           cat > docker-compose.staging.yml << EOF
