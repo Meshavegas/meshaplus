@@ -287,6 +287,9 @@ jobs:
           # Déployer sur le VPS
           echo "📡 Connecting to VPS..."
           
+          # Créer le répertoire de déploiement s'il n'existe pas
+          ssh -o StrictHostKeyChecking=no -i ~/.ssh/vps_key ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_HOST }} "mkdir -p ${DEPLOY_PATH}"
+          
           # Copier les fichiers sur le VPS
           scp -r -o StrictHostKeyChecking=no -i ~/.ssh/vps_key backend/ ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_HOST }}:${DEPLOY_PATH}/
           scp -o StrictHostKeyChecking=no -i ~/.ssh/vps_key docker-compose.prod.yml ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_HOST }}:${DEPLOY_PATH}/
@@ -485,6 +488,9 @@ jobs:
           
           # Déployer sur le VPS Staging
           echo "📡 Connecting to staging VPS..."
+          
+          # Créer le répertoire de déploiement s'il n'existe pas
+          ssh -o StrictHostKeyChecking=no -i ~/.ssh/vps_key ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_STAGING_HOST }} "mkdir -p ${DEPLOY_PATH}"
           
           # Copier les fichiers sur le VPS
           scp -r -o StrictHostKeyChecking=no -i ~/.ssh/vps_key backend/ ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_STAGING_HOST }}:${DEPLOY_PATH}/
