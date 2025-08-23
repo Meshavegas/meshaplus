@@ -155,7 +155,8 @@ func createUsersTable(db *pg.DB, loggerInstance logger.Logger) error {
 
 // createCategoriesTable crée la table categories
 func createCategoriesTable(db *pg.DB, loggerInstance logger.Logger) error {
-	query := `
+	// Créer la table de base sans parent_id d'abord
+	createQuery := `
 	CREATE TABLE IF NOT EXISTS categories (
 		id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 		user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -164,18 +165,46 @@ func createCategoriesTable(db *pg.DB, loggerInstance logger.Logger) error {
 		created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
 		UNIQUE(user_id, name, type)
 	);
-	
-	CREATE INDEX IF NOT EXISTS idx_categories_user_id ON categories(user_id);
-	CREATE INDEX IF NOT EXISTS idx_categories_type ON categories(type);
 	`
 
-	_, err := db.Exec(query)
+	_, err := db.Exec(createQuery)
 	if err != nil {
 		loggerInstance.Error("Erreur création table categories", logger.Error(err))
 		return err
 	}
 
-	loggerInstance.Info("Table categories créée")
+	// Ajouter la colonne parent_id si elle n'existe pas
+	migrationQuery := `
+	DO $$ 
+	BEGIN 
+		IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'categories' AND column_name = 'parent_id') THEN
+			ALTER TABLE categories ADD COLUMN parent_id UUID REFERENCES categories(id) ON DELETE CASCADE;
+		END IF;
+	END $$;
+	`
+
+	_, err = db.Exec(migrationQuery)
+	if err != nil {
+		loggerInstance.Error("Erreur ajout colonne parent_id", logger.Error(err))
+		return err
+	}
+
+	// Créer les index
+	indexQueries := []string{
+		`CREATE INDEX IF NOT EXISTS idx_categories_user_id ON categories(user_id);`,
+		`CREATE INDEX IF NOT EXISTS idx_categories_type ON categories(type);`,
+		`CREATE INDEX IF NOT EXISTS idx_categories_parent_id ON categories(parent_id);`,
+	}
+
+	for _, indexQuery := range indexQueries {
+		_, err := db.Exec(indexQuery)
+		if err != nil {
+			loggerInstance.Error("Erreur création index categories", logger.Error(err))
+			return err
+		}
+	}
+
+	loggerInstance.Info("Table categories créée/mise à jour")
 	return nil
 }
 

@@ -3,6 +3,7 @@ package service
 import (
 	"backend/internal/domaine/entity"
 	"backend/internal/domaine/repository"
+	"backend/internal/service/ai"
 	"backend/pkg/logger"
 	"context"
 	"fmt"
@@ -26,6 +27,8 @@ type TransactionQuery struct {
 type TransactionService struct {
 	transactionRepo repository.TransactionRepository
 	accountRepo     repository.AccountRepository
+	categoryRepo    repository.CategoryRepository
+	aiService       *ai.AIService
 	logger          logger.Logger
 }
 
@@ -33,11 +36,15 @@ type TransactionService struct {
 func NewTransactionService(
 	transactionRepo repository.TransactionRepository,
 	accountRepo repository.AccountRepository,
+	categoryRepo repository.CategoryRepository,
+	aiService *ai.AIService,
 	logger logger.Logger,
 ) *TransactionService {
 	return &TransactionService{
 		transactionRepo: transactionRepo,
 		accountRepo:     accountRepo,
+		categoryRepo:    categoryRepo,
+		aiService:       aiService,
 		logger:          logger,
 	}
 }
@@ -62,11 +69,56 @@ func (s *TransactionService) CreateTransaction(ctx context.Context, userID uuid.
 		return nil, fmt.Errorf("accès non autorisé au compte")
 	}
 
+	// Gestion de la catégorie
+	var categoryID *uuid.UUID = req.CategoryID
+
+	// Si aucune catégorie n'est spécifiée, utiliser l'IA pour en créer une automatiquement
+	if categoryID == nil && req.Description != "" {
+		// Déterminer le type de catégorie basé sur le type de transaction
+		categoryType := "expense"
+		if req.Type == "income" {
+			categoryType = "revenue"
+		}
+
+		// Utiliser l'IA pour catégoriser automatiquement
+		categoryResponse, err := s.aiService.GenerateCatherorie([]string{}, req.Description)
+		if err != nil {
+			s.logger.Warn("Erreur catégorisation automatique, transaction créée sans catégorie", logger.Error(err))
+		} else {
+			// Créer la nouvelle catégorie dans la base de données
+			newCategory := &entity.Category{
+				UserID: userID,
+				Name:   categoryResponse.CategoryName,
+				Type:   categoryType,
+			}
+
+			if err := s.categoryRepo.Create(ctx, newCategory); err != nil {
+				s.logger.Warn("Erreur création catégorie automatique", logger.Error(err))
+			} else {
+				categoryID = &newCategory.ID
+				s.logger.Info("Catégorie créée automatiquement",
+					logger.String("category_name", categoryResponse.CategoryName),
+					logger.String("category_id", newCategory.ID.String()),
+					logger.Int("confidence", categoryResponse.Confidence),
+				)
+			}
+		}
+	} else if categoryID != nil {
+		// Vérifier que la catégorie existe et appartient à l'utilisateur
+		category, err := s.categoryRepo.GetByID(ctx, *categoryID)
+		if err != nil {
+			return nil, fmt.Errorf("catégorie non trouvée")
+		}
+		if category.UserID != userID {
+			return nil, fmt.Errorf("accès non autorisé à la catégorie")
+		}
+	}
+
 	// Création de la transaction
 	transaction := &entity.Transaction{
 		UserID:      userID,
 		AccountID:   req.AccountID,
-		CategoryID:  req.CategoryID,
+		CategoryID:  categoryID,
 		Type:        req.Type,
 		Amount:      req.Amount,
 		Description: req.Description,
@@ -86,6 +138,12 @@ func (s *TransactionService) CreateTransaction(ctx context.Context, userID uuid.
 		logger.String("user_id", userID.String()),
 		logger.String("type", transaction.Type),
 		logger.Float64("amount", transaction.Amount),
+		logger.String("category_id", func() string {
+			if categoryID != nil {
+				return categoryID.String()
+			}
+			return "none"
+		}()),
 	)
 
 	return transaction, nil
@@ -179,7 +237,7 @@ func (s *TransactionService) UpdateTransaction(ctx context.Context, userID uuid.
 	}
 
 	if req.CategoryID != nil {
-		transaction.CategoryID = *req.CategoryID
+		transaction.CategoryID = req.CategoryID
 	}
 
 	if req.AccountID != nil {

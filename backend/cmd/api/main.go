@@ -32,6 +32,7 @@ import (
 	"backend/internal/repository/postgres"
 	"backend/internal/routes"
 	"backend/internal/service"
+	"backend/internal/service/ai"
 	"backend/internal/usecase"
 	"backend/pkg/config"
 	"backend/pkg/logger"
@@ -82,6 +83,7 @@ func main() {
 	accountRepo := postgres.NewAccountRepository(db)
 	budgetRepo := postgres.NewBudgetRepository(db)
 	savingGoalRepo := postgres.NewSavingGoalRepository(db)
+	categoryRepo := postgres.NewCategoryRepository(db, loggerInstance)
 	// fileRepo := postgres.NewFileRepository(db) // TODO: implement file repository
 	// externalService := service.NewExternalService(cfg.ExternalAPI.BaseURL) // TODO: implement external service
 
@@ -89,10 +91,12 @@ func main() {
 	jwtService := service.NewJWTService(cfg.JWT, loggerInstance)
 	authService := service.NewAuthService(userRepo, jwtService, loggerInstance)
 	taskService := service.NewTaskService(taskRepo, loggerInstance)
-	transactionService := service.NewTransactionService(transactionRepo, accountRepo, loggerInstance)
+	aiService := ai.NewAIService(cfg.AI, loggerInstance)
+	transactionService := service.NewTransactionService(transactionRepo, accountRepo, categoryRepo, aiService, loggerInstance)
 	accountService := service.NewAccountService(accountRepo, loggerInstance)
 	budgetService := service.NewBudgetService(budgetRepo, loggerInstance)
 	savingGoalService := service.NewSavingGoalService(savingGoalRepo, loggerInstance)
+	categoryService := service.NewCategoryService(categoryRepo, aiService, loggerInstance)
 
 	// Usecases
 	userUsecase := usecase.NewUserUsecase(userRepo, loggerInstance)
@@ -108,6 +112,7 @@ func main() {
 	accountHandler := handler.NewAccountHandler(accountService, loggerInstance)
 	budgetHandler := handler.NewBudgetHandler(budgetService, loggerInstance)
 	savingGoalHandler := handler.NewSavingGoalHandler(savingGoalService, loggerInstance)
+	categoryHandler := handler.NewCategoryHandler(categoryService, loggerInstance)
 	// userHandler := handler.NewUserHandler(userUsecase, loggerInstance)
 	// fileHandler := handler.NewFileHandler(fileUsecase, loggerInstance) // TODO: implement file handler
 	// healthHandler := handler.NewHealthHandler(db, redisClient) // TODO: implement health handler
@@ -124,7 +129,7 @@ func main() {
 
 	// Configuration des routes
 	// TODO: Implement routes setup
-	routes.SetupRoutes(r, userUsecase, authService, authMiddleware, taskHandler, transactionHandler, accountHandler, budgetHandler, savingGoalHandler, loggerInstance)
+	routes.SetupRoutes(r, userUsecase, authService, authMiddleware, taskHandler, transactionHandler, accountHandler, budgetHandler, savingGoalHandler, categoryHandler, loggerInstance)
 
 	// Configuration du serveur
 	server := &http.Server{

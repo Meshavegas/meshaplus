@@ -36,13 +36,13 @@ type UpdateTaskRequest struct {
 
 // CreateTransactionRequest représente la requête pour créer une transaction
 type CreateTransactionRequest struct {
-	AccountID   uuid.UUID `json:"account_id" validate:"required,uuid" example:"123e4567-e89b-12d3-a456-426614174000"`
-	CategoryID  uuid.UUID `json:"category_id" validate:"required,uuid" example:"123e4567-e89b-12d3-a456-426614174000"`
-	Type        string    `json:"type" validate:"required,oneof=income expense" example:"expense"`
-	Amount      float64   `json:"amount" validate:"required,gt=0" example:"25.50"`
-	Description string    `json:"description" validate:"required,min=1,max=255" example:"Achat alimentaire"`
-	Date        time.Time `json:"date" validate:"required" example:"2024-01-15T00:00:00Z"`
-	Recurring   bool      `json:"recurring" example:"false"`
+	AccountID   uuid.UUID  `json:"account_id" validate:"required,uuid" example:"123e4567-e89b-12d3-a456-426614174000"`
+	CategoryID  *uuid.UUID `json:"category_id,omitempty" validate:"omitempty,uuid" example:"123e4567-e89b-12d3-a456-426614174000"`
+	Type        string     `json:"type" validate:"required,oneof=income expense" example:"expense"`
+	Amount      float64    `json:"amount" validate:"required,gt=0" example:"25.50"`
+	Description string     `json:"description" validate:"required,min=1,max=255" example:"Achat alimentaire"`
+	Date        time.Time  `json:"date" validate:"required" example:"2024-01-15T00:00:00Z"`
+	Recurring   bool       `json:"recurring" example:"false"`
 }
 
 // UpdateTransactionRequest représente la requête pour mettre à jour une transaction
@@ -114,14 +114,14 @@ type UpdateReminderRequest struct {
 // CreateCategoryRequest représente la requête pour créer une catégorie
 type CreateCategoryRequest struct {
 	Name     string     `json:"name" validate:"required,min=1,max=100" example:"Alimentation"`
-	Type     string     `json:"type" validate:"required,oneof=income expense task" example:"expense"`
+	Type     string     `json:"type" validate:"required,oneof=expense revenue task" example:"expense"`
 	ParentID *uuid.UUID `json:"parent_id,omitempty" validate:"omitempty,uuid" example:"123e4567-e89b-12d3-a456-426614174000"`
 }
 
 // UpdateCategoryRequest représente la requête pour mettre à jour une catégorie
 type UpdateCategoryRequest struct {
 	Name     *string    `json:"name,omitempty" validate:"omitempty,min=1,max=100" example:"Alimentation et courses"`
-	Type     *string    `json:"type,omitempty" validate:"omitempty,oneof=income expense task" example:"expense"`
+	Type     *string    `json:"type,omitempty" validate:"omitempty,oneof=expense revenue task" example:"expense"`
 	ParentID *uuid.UUID `json:"parent_id,omitempty" validate:"omitempty,uuid" example:"123e4567-e89b-12d3-a456-426614174000"`
 }
 

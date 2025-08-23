@@ -6,4 +6,4 @@ const config = getDefaultConfig(__dirname);
 // Add support for Expo Router
 config.resolver.assetExts.push('cjs');
 
-module.exports = withNativeWind(config, { input: './global.css' });
+module.exports = withNativeWind(config, { input: './global.css', inlineRem: 16 });

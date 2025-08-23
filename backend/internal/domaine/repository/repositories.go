@@ -75,6 +75,7 @@ type CategoryRepository interface {
 	Delete(ctx context.Context, id uuid.UUID) error
 	GetByType(ctx context.Context, userID uuid.UUID, categoryType string) ([]*entity.Category, error)
 	GetChildren(ctx context.Context, parentID uuid.UUID) ([]*entity.Category, error)
+	GetAll(ctx context.Context, userID uuid.UUID) ([]*entity.Category, error)
 }
 
 // BUDGET

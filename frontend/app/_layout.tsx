@@ -1,6 +1,7 @@
 import { Redirect, Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { View, ActivityIndicator } from 'react-native';
+import { PortalHost } from '@rn-primitives/portal';
 
 import '@/global.css';
 import { useIsAuthenticated, useAuthLoading } from '@/src';
@@ -37,6 +38,7 @@ export default function RootLayout() {
           </>
         )}
       </Stack>
+      <PortalHost />
       <StatusBar style="auto" />
     </>
   );

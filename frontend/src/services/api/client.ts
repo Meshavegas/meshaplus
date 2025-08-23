@@ -18,10 +18,10 @@ export const apiClient: AxiosInstance = axios.create({
 // Intercepteur pour ajouter le token d'authentification
 apiClient.interceptors.request.use(
   (config) => {
-    const token = useAuthStore.getState().token
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`
-    }
+    // const token = useAuthStore.getState().token
+    // if (token) {
+    //   config.headers.Authorization = `Bearer ${token}`
+    // }
     return config
   },
   (error) => {
@@ -35,7 +35,11 @@ apiClient.interceptors.response.use(
     return response
   },
   async (error) => {
+    console.log("error", JSON.stringify(error?.response, null, 2));
+    
     if (error.response?.status === 401) {
+    console.log("error.response?.status", error.response?.status);
+    
       // Token expiré, déconnexion automatique
       useAuthStore.getState().logout()
     }
@@ -93,26 +97,45 @@ export const apiHelpers = {
 
   // POST request
   post: async <T>(url: string, data?: any, config?: ApiRequestConfig): Promise<T> => {
-    const response = await apiClient.post<T>(url, data, config)
-    return response.data
+    try {
+      
+      const response = await apiClient.post<T>(url, data, config)
+      return response.data
+    } catch (error) {
+      
+      throw error
+    }
   },
 
   // PUT request
   put: async <T>(url: string, data?: any, config?: ApiRequestConfig): Promise<T> => {
-    const response = await apiClient.put<T>(url, data, config)
-    return response.data
+    try {
+      const response = await apiClient.put<T>(url, data, config)
+      return response.data
+    } catch (error) {
+      throw error
+    }
   },
+    
 
   // PATCH request
   patch: async <T>(url: string, data?: any, config?: ApiRequestConfig): Promise<T> => {
-    const response = await apiClient.patch<T>(url, data, config)
-    return response.data
+    try {
+      const response = await apiClient.patch<T>(url, data, config)
+      return response.data
+    } catch (error) {
+      throw error
+    }
   },
 
   // DELETE request
   delete: async <T>(url: string, config?: ApiRequestConfig): Promise<T> => {
-    const response = await apiClient.delete<T>(url, config)
-    return response.data
+    try {
+      const response = await apiClient.delete<T>(url, config)
+      return response.data
+    } catch (error) {
+      throw error
+    }
   },
   //set token
   setToken: (token: string) => {

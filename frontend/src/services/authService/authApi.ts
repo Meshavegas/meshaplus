@@ -1,4 +1,4 @@
-import apiClient, { apiHelpers } from "../api/client"
+import { apiHelpers } from "../api/client"
 
 const authApi = {
     login: async (email: string, password: string): Promise<LoginResponse> => {

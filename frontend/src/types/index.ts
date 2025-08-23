@@ -93,6 +93,147 @@ export interface ApiResponse<T> {
   success: boolean
 }
 
+// Types pour les transactions
+export interface Transaction {
+  id: string
+  userId: string
+  accountId: string
+  categoryId: string
+  type: 'income' | 'expense'
+  amount: number
+  description: string
+  date: Date
+  recurring: boolean
+  createdAt: Date
+  updatedAt: Date
+}
+
+export interface CreateTransactionRequest {
+  account_id: string
+  categoryId?: string
+  type: 'income' | 'expense'
+  amount: number
+  description?: string
+  date: Date
+  recurring?: boolean
+}
+
+// Types pour les catégories
+export interface Category {
+  id: string
+  userId: string
+  name: string
+  type: 'income' | 'expense' | 'task'
+  parentId?: string
+  createdAt: Date
+  updatedAt: Date
+}
+
+// Types pour les comptes
+export interface Account {
+  id: string
+  userId: string
+  name: string
+  type: 'checking' | 'savings' | 'mobile_money'
+  balance: number
+  currency: string
+  createdAt: Date
+  updatedAt: Date
+}
+
+// Types pour les statistiques
+export interface TaskStats {
+  totalTasks: number
+  completedTasks: number
+  pendingTasks: number
+  completionRate: number
+}
+
+export interface TransactionStats {
+  period: string
+  totalIncome: number
+  totalExpense: number
+  netAmount: number
+  count: number
+}
+
+export interface BudgetStats {
+  period: string
+  totalPlanned: number
+  totalSpent: number
+  remaining: number
+  budgetCount: number
+  overBudgetCount: number
+  utilizationRate: number
+}
+
+export interface FinanceOverview {
+  totalRevenue: number
+  totalExpense: number
+  balance: number
+  monthlyBudget: number
+  savings: number
+}
+
+export interface TasksOverview {
+  totalTasks: number
+  completed: number
+  pending: number
+  incoming: number
+  running: number
+}
+
+export interface DashboardData {
+  userId: string
+  tasksOverview: TasksOverview
+  financeOverview: FinanceOverview
+  recentTransactions: Transaction[]
+  recentTasks: Task[]
+}
+
+// Types pour les tâches
+export interface Task {
+  id: string
+  userId: string
+  title: string
+  description?: string
+  priority: 'low' | 'medium' | 'high'
+  status: 'pending' | 'running' | 'completed' | 'expired'
+  dueDate?: Date
+  categoryId?: string
+  durationPlanned?: number
+  durationSpent?: number
+  createdAt: Date
+  updatedAt: Date
+}
+
+// Types pour les budgets
+export interface Budget {
+  id: string
+  userId: string
+  categoryId: string
+  amountPlanned: number
+  amountSpent: number
+  month: number
+  year: number
+  createdAt: Date
+  updatedAt: Date
+}
+
+// Types pour les objectifs d'épargne
+export interface SavingGoal {
+  id: string
+  userId: string
+  title: string
+  targetAmount: number
+  currentAmount: number
+  deadline?: Date
+  isAchieved: boolean
+  frequency: 'weekly' | 'monthly' | 'yearly'
+  createdAt: Date
+  updatedAt: Date
+}
+
 export interface PaginatedResponse<T> {
   data: T[]
   total: number

@@ -38,3 +38,6 @@ jwt:
   secret_key: "your-secret-key-change-in-production"
   expiration_hours: 24
   refresh_expiration_hours: 168
+
+ai:
+  model: "gemini-2.5-flash"

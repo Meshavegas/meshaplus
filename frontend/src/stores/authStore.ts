@@ -44,7 +44,6 @@ export const useAuthStore = create<AuthStore>()(
         set({ isLoading: true, error: null })
         try {
           const response = await authApi.login(email, password)
-          console.log('login response:', response)
 
           // Vérifier que la réponse contient les données nécessaires
           if (response && response.data) {

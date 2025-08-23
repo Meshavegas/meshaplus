@@ -45,17 +45,17 @@ type Account struct {
 }
 
 type Transaction struct {
-	ID          uuid.UUID `json:"id" db:"id"`
-	UserID      uuid.UUID `json:"user_id" db:"user_id"`
-	AccountID   uuid.UUID `json:"account_id" db:"account_id"`
-	CategoryID  uuid.UUID `json:"category_id" db:"category_id"`
-	Type        string    `json:"type" db:"type"` // income, expense
-	Amount      float64   `json:"amount" db:"amount"`
-	Description string    `json:"description" db:"description"`
-	Date        time.Time `json:"date" db:"date"`
-	Recurring   bool      `json:"recurring" db:"recurring"`
-	CreatedAt   time.Time `json:"created_at" db:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at" db:"updated_at"`
+	ID          uuid.UUID  `json:"id" db:"id"`
+	UserID      uuid.UUID  `json:"user_id" db:"user_id"`
+	AccountID   uuid.UUID  `json:"account_id" db:"account_id"`
+	CategoryID  *uuid.UUID `json:"category_id,omitempty" db:"category_id"`
+	Type        string     `json:"type" db:"type"` // income, expense
+	Amount      float64    `json:"amount" db:"amount"`
+	Description string     `json:"description" db:"description"`
+	Date        time.Time  `json:"date" db:"date"`
+	Recurring   bool       `json:"recurring" db:"recurring"`
+	CreatedAt   time.Time  `json:"created_at" db:"created_at"`
+	UpdatedAt   time.Time  `json:"updated_at" db:"updated_at"`
 }
 
 // Reminder représente un rappel ou notification intelligente
@@ -75,10 +75,9 @@ type Category struct {
 	ID        uuid.UUID  `json:"id" db:"id"`
 	UserID    uuid.UUID  `json:"user_id" db:"user_id"`
 	Name      string     `json:"name" db:"name"`
-	Type      string     `json:"type" db:"type"`                     // income, expense, task
-	ParentID  *uuid.UUID `json:"parent_id,omitempty" db:"parent_id"` // sous-cat
+	Type      string     `json:"type" db:"type"`                     // expense, revenue, task
+	ParentID  *uuid.UUID `json:"parent_id,omitempty" db:"parent_id"` // sous-catégorie
 	CreatedAt time.Time  `json:"created_at" db:"created_at"`
-	UpdatedAt time.Time  `json:"updated_at" db:"updated_at"`
 }
 
 // SavingGoal représente un objectif d'épargne

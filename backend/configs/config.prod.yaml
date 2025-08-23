@@ -33,6 +33,9 @@ jwt:
   expiration: "24h"
   refresh_expiration: "168h"
 
+ai:
+  model: "gemini-2.5-flash"
+
 storage:
   type: "local"
   local:

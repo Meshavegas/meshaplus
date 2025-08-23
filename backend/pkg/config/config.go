@@ -17,6 +17,7 @@ type Config struct {
 	Storage     StorageConfig     `mapstructure:"storage"`
 	ExternalAPI ExternalAPIConfig `mapstructure:"external_api"`
 	JWT         JWTConfig         `mapstructure:"jwt"`
+	AI          AIConfig          `mapstructure:"ai"`
 }
 
 type ServerConfig struct {
