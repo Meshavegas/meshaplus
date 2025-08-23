@@ -151,5 +151,32 @@ setup: deps docker-up migrate swagger ## Configuration initiale du projet
 	@echo "$(BLUE)Pour démarrer: make run$(NC)"
 	@echo "$(BLUE)Swagger: http://localhost:8080/swagger/index.html$(NC)"
 
+# Build pour production
+build-prod: ## Compile le binaire pour la production (Linux AMD64)
+	@echo "$(YELLOW)Compilation pour la production...$(NC)"
+	@GOOS=linux GOARCH=amd64 go build -o bin/api ./cmd/api
+	@echo "$(GREEN)Binaire de production créé: bin/api$(NC)"
+
+# Déploiement binaire
+deploy-binary: build-prod ## Déploie le binaire sur le VPS (nécessite VPS_HOST et VPS_USER)
+	@echo "$(YELLOW)Déploiement du binaire...$(NC)"
+	@if [ -z "$(VPS_HOST)" ] || [ -z "$(VPS_USER)" ]; then \
+		echo "$(RED)Erreur: VPS_HOST et VPS_USER doivent être définis$(NC)"; \
+		echo "Exemple: make deploy-binary VPS_HOST=your-vps.com VPS_USER=root"; \
+		exit 1; \
+	fi
+	@./scripts/build-and-deploy.sh -h $(VPS_HOST) -u $(VPS_USER)
+
+# Installation des services locaux sur le VPS
+setup-vps-services: ## Installe les services locaux sur le VPS (nécessite VPS_HOST et VPS_USER)
+	@echo "$(YELLOW)Installation des services sur le VPS...$(NC)"
+	@if [ -z "$(VPS_HOST)" ] || [ -z "$(VPS_USER)" ]; then \
+		echo "$(RED)Erreur: VPS_HOST et VPS_USER doivent être définis$(NC)"; \
+		echo "Exemple: make setup-vps-services VPS_HOST=your-vps.com VPS_USER=root"; \
+		exit 1; \
+	fi
+	@scp scripts/setup-local-services.sh $(VPS_USER)@$(VPS_HOST):/tmp/
+	@ssh $(VPS_USER)@$(VPS_HOST) "chmod +x /tmp/setup-local-services.sh && /tmp/setup-local-services.sh"
+
 # Commande par défaut
 all: clean deps swagger build test ## Clean, deps, swagger, build et test

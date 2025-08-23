@@ -42,21 +42,107 @@ Ce dossier contient des scripts pour configurer et diagnostiquer les connexions 
 - Teste la connexion SSH
 - Vérifie l'environnement sur le VPS
 
+### 3. `generate-deploy-key.sh` - Génération de clé de déploiement
+
+**Usage:**
+```bash
+./generate-deploy-key.sh [key_name]
+```
+
+**Exemple:**
+```bash
+./generate-deploy-key.sh meshaplus_deploy_key
+```
+
+**Fonctionnalités:**
+- Génère une nouvelle paire de clés SSH sans phrase de passe
+- Configure les permissions appropriées
+- Affiche les informations pour GitHub Secrets
+- Prêt pour le déploiement automatique
+
+### 4. `remove-ssh-passphrase.sh` - Suppression de phrase de passe
+
+**Usage:**
+```bash
+./remove-ssh-passphrase.sh [key_path]
+```
+
+**Exemple:**
+```bash
+./remove-ssh-passphrase.sh ~/.ssh/vps_key
+```
+
+**Fonctionnalités:**
+- Supprime la phrase de passe d'une clé SSH existante
+- Crée une sauvegarde automatique
+- Vérifie le résultat
+- Affiche les nouvelles informations
+
+### 5. `add-key-to-vps.sh` - Ajout de clé au VPS
+
+**Usage:**
+```bash
+./add-key-to-vps.sh [host] [username] [key_path]
+```
+
+**Exemple:**
+```bash
+./add-key-to-vps.sh 192.168.1.100 ubuntu ~/.ssh/meshaplus_deploy_key
+```
+
+**Fonctionnalités:**
+- Ajoute automatiquement la clé publique au VPS
+- Teste la connexion SSH
+- Vérifie la configuration
+- Prêt pour le déploiement
+
+### 6. `setup-deploy-directory.sh` - Configuration du répertoire de déploiement
+
+**Usage:**
+```bash
+./setup-deploy-directory.sh [host] [username] [deploy_path] [key_path]
+```
+
+**Exemple:**
+```bash
+./setup-deploy-directory.sh 192.168.1.100 ubuntu /home/ubuntu/meshaplus
+```
+
+**Fonctionnalités:**
+- Crée le répertoire de déploiement sur le VPS
+- Vérifie l'environnement Docker
+- Teste la copie de fichiers
+- Configure les permissions appropriées
+
 ## 🚀 Démarrage Rapide
 
-### Étape 1: Configuration SSH
+### Étape 1: Génération de clé SSH de déploiement
 
 ```bash
 # Rendre les scripts exécutables
 chmod +x scripts/*.sh
 
-# Configurer SSH pour votre VPS
-./scripts/setup-ssh.sh votre-vps-ip votre-utilisateur
+# Générer une nouvelle clé SSH sans phrase de passe
+./scripts/generate-deploy-key.sh meshaplus_deploy_key
 ```
 
-### Étape 2: Configuration GitHub Secrets
+### Étape 2: Ajout de la clé au VPS
 
-Le script `setup-ssh.sh` affichera les informations nécessaires. Ajoutez ces secrets dans GitHub :
+```bash
+# Ajouter automatiquement la clé publique au VPS
+./scripts/add-key-to-vps.sh votre-vps-ip votre-utilisateur ~/.ssh/meshaplus_deploy_key
+```
+
+### Étape 3: Configuration du répertoire de déploiement
+
+```bash
+# Créer le répertoire de déploiement sur le VPS
+./scripts/setup-deploy-directory.sh votre-vps-ip votre-utilisateur
+```
+
+### Étape 4: Configuration GitHub Secrets
+
+Le script `generate-deploy-key.sh` affichera les informations nécessaires. Ajoutez ces secrets dans GitHub :
 
 1. Allez dans votre repository GitHub
 2. Settings > Secrets and variables > Actions
@@ -66,14 +152,14 @@ Le script `setup-ssh.sh` affichera les informations nécessaires. Ajoutez ces se
 VPS_HOST: "votre-vps-ip-ou-domaine"
 VPS_USERNAME: "votre-utilisateur"
 VPS_SSH_KEY: "-----BEGIN OPENSSH PRIVATE KEY-----\n...\n-----END OPENSSH PRIVATE KEY-----"
-VPS_DEPLOY_PATH: "/opt/meshaplus"  # Optionnel
+VPS_DEPLOY_PATH: "/home/votre-utilisateur/meshaplus"  # Optionnel, défaut: /home/username/meshaplus
 ```
 
-### Étape 3: Test de Diagnostic
+### Étape 5: Test de Diagnostic
 
 ```bash
 # Tester la configuration
-./scripts/ssh-diagnostic.sh votre-vps-ip votre-utilisateur ~/.ssh/meshaplus_key
+./scripts/ssh-diagnostic.sh votre-vps-ip votre-utilisateur ~/.ssh/meshaplus_deploy_key
 ```
 
 ## 🔍 Résolution de Problèmes

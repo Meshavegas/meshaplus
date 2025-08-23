@@ -1,0 +1,5 @@
+---
+description: pour chaque tasks que tu fait ne fait plus de doc et de script
+globs:
+alwaysApply: false
+---
