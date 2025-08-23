@@ -1,0 +1,169 @@
+name: 🚀 Deploy to VPS
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'backend/**'
+      - '.github/workflows/vps-deploy.yml'
+  workflow_dispatch:
+
+env:
+  GO_VERSION: '1.23'
+  APP_NAME: 'meshaplus-api'
+  BINARY_NAME: 'api'
+
+jobs:
+  deploy:
+    name: 🚀 Deploy to VPS
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🐹 Setup Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: 📦 Install dependencies
+        working-directory: ./backend
+        run: |
+          go mod download
+          go mod tidy
+
+      - name: 🏗️ Build application
+        working-directory: ./backend
+        run: |
+          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
+            -ldflags='-w -s -extldflags "-static"' \
+            -a -installsuffix cgo \
+            -o bin/${{ env.BINARY_NAME }} \
+            ./cmd/api
+
+      - name: 📦 Create deployment package
+        run: |
+          tar -czf deployment.tar.gz -C backend bin/${{ env.BINARY_NAME }}
+          echo "Deployment package created: deployment.tar.gz"
+
+      - name: 📤 Upload binary to VPS
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT || 22 }}
+          source: "deployment.tar.gz"
+          target: "/tmp"
+
+      - name: 🚀 Deploy and test on VPS
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT || 22 }}
+          script: |
+            set -e
+            
+            echo "🚀 Starting deployment..."
+            
+            # Variables
+            APP_NAME="${{ env.APP_NAME }}"
+            BINARY_NAME="${{ env.BINARY_NAME }}"
+            DEPLOY_DIR="/opt/$APP_NAME"
+            BACKUP_DIR="$DEPLOY_DIR/backups"
+            CURRENT_BIN="$DEPLOY_DIR/bin/$BINARY_NAME"
+            NEW_BIN="/tmp/bin/$BINARY_NAME"
+            SERVICE_NAME="$APP_NAME"
+            
+            # Create directories if they don't exist
+            sudo mkdir -p "$DEPLOY_DIR/bin"
+            sudo mkdir -p "$BACKUP_DIR"
+            
+            # Extract new binary
+            echo "📦 Extracting new binary..."
+            cd /tmp
+            tar -xzf deployment.tar.gz
+            
+            # Create backup of current binary
+            if [ -f "$CURRENT_BIN" ]; then
+              echo "💾 Creating backup of current binary..."
+              sudo cp "$CURRENT_BIN" "$BACKUP_DIR/$(date +%Y%m%d_%H%M%S)_$BINARY_NAME"
+            fi
+            
+            # Stop current service
+            echo "⏹️ Stopping current service..."
+            sudo systemctl stop "$SERVICE_NAME" || true
+            
+            # Replace binary
+            echo "🔄 Replacing binary..."
+            sudo cp "$NEW_BIN" "$CURRENT_BIN"
+            sudo chmod +x "$CURRENT_BIN"
+            
+            # Start service
+            echo "▶️ Starting service..."
+            sudo systemctl start "$SERVICE_NAME"
+            
+            # Wait for service to start
+            echo "⏳ Waiting for service to start..."
+            sleep 5
+            
+            # Test if service is running
+            echo "🧪 Testing service..."
+            if sudo systemctl is-active --quiet "$SERVICE_NAME"; then
+              echo "✅ Service is running successfully!"
+              
+              # Test health endpoint if available
+              if command -v curl >/dev/null 2>&1; then
+                echo "🏥 Testing health endpoint..."
+                if curl -f -s http://localhost:8080/health >/dev/null 2>&1; then
+                  echo "✅ Health check passed!"
+                else
+                  echo "⚠️ Health check failed, but service is running"
+                fi
+              fi
+              
+              # Clean up old backups (keep last 5)
+              echo "🧹 Cleaning up old backups..."
+              cd "$BACKUP_DIR"
+              ls -t | tail -n +6 | xargs -r sudo rm -f
+              
+              echo "🎉 Deployment successful!"
+              
+            else
+              echo "❌ Service failed to start, rolling back..."
+              
+              # Rollback to previous version
+              if [ -f "$BACKUP_DIR/$(ls -t "$BACKUP_DIR" | head -n1)" ]; then
+                echo "🔄 Rolling back to previous version..."
+                sudo cp "$BACKUP_DIR/$(ls -t "$BACKUP_DIR" | head -n1)" "$CURRENT_BIN"
+                sudo systemctl start "$SERVICE_NAME"
+                
+                if sudo systemctl is-active --quiet "$SERVICE_NAME"; then
+                  echo "✅ Rollback successful!"
+                else
+                  echo "❌ Rollback failed! Manual intervention required."
+                  exit 1
+                fi
+              else
+                echo "❌ No backup available for rollback!"
+                exit 1
+              fi
+            fi
+
+      - name: 🧹 Cleanup
+        run: |
+          rm -f deployment.tar.gz
+          echo "Cleanup completed"
+
+      - name: 📊 Deployment Status
+        if: always()
+        run: |
+          if [ "${{ job.status }}" == "success" ]; then
+            echo "✅ Deployment completed successfully!"
+          else
+            echo "❌ Deployment failed!"
+          fi 

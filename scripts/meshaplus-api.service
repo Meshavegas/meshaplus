@@ -1,0 +1,34 @@
+[Unit]
+Description=MeshaPlus Backend API
+After=network.target postgresql.service
+Wants=postgresql.service
+
+[Service]
+Type=simple
+User=root
+Group=root
+WorkingDirectory=/opt/meshaplus-api
+ExecStart=/opt/meshaplus-api/bin/api
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=meshaplus-api
+
+# Environment variables
+Environment=GIN_MODE=release
+Environment=PORT=8080
+
+# Security settings
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/meshaplus-api
+
+# Resource limits
+LimitNOFILE=65536
+LimitNPROC=4096
+
+[Install]
+WantedBy=multi-user.target 
