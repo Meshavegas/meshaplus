@@ -66,6 +66,7 @@ import {
 | `mc`, `mci`, `mdc` | Material Community Icons | `account`, `home`, `settings` |
 | `fa`, `fontawesome` | FontAwesome | `user`, `heart`, `star` |
 | `fa5`, `fas`, `far`, `fab` | FontAwesome5 | `user`, `heart`, `star` |
+| `fa6`, `fa-solid`, `fa-regular` | FontAwesome6 | `house`, `chart-line`, `money-bill` |
 | `ant`, `antd` | AntDesign | `heart`, `star`, `like` |
 | `ent`, `entypo` | Entypo | `home`, `user`, `mail` |
 | `evil`, `evi` | EvilIcons | `heart`, `star`, `like` |
@@ -75,6 +76,22 @@ import {
 | `oct`, `octicons` | Octicons | `home`, `user`, `mail` |
 | `sli`, `simpleline` | SimpleLineIcons | `home`, `user`, `mail` |
 | `zocial`, `zoc` | Zocial | `home`, `user`, `mail` |
+
+## Utilisation avec autocomplétion
+
+Pour une meilleure expérience de développement avec autocomplétion, vous pouvez utiliser les constantes d'icônes :
+
+```tsx
+import { Icon, IONICONS, FONTAWESOME_6 } from '@/src/components/Icons'
+
+// Avec autocomplétion
+<Icon name={IONICONS.HOME} size={24} color="#000" />
+<Icon name={FONTAWESOME_6.CHART_LINE} size={24} color="#000" />
+
+// Avec préfixe et autocomplétion
+<Icon name={`io:${IONICONS.HOME}`} size={24} color="#000" />
+<Icon name={`fa6:${FONTAWESOME_6.MONEY_BILL}`} size={24} color="#000" />
+```
 
 ## Exemples d'utilisation
 

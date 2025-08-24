@@ -19,8 +19,8 @@ const transactionApi = {
 
   getTransactions: async (): Promise<Transaction[]> => {
     try {
-      const response = await apiClient.get('/transactions')
-      return response.data.data
+      const response = await apiHelpers.get<{data: {transactions: Transaction[]}}>('/transactions')
+      return response.data.transactions
     } catch (error) {
       console.error('Get transactions error:', error)
       throw error

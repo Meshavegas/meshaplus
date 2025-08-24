@@ -38,7 +38,7 @@ func (r *CategoryRepository) GetByID(ctx context.Context, id uuid.UUID) (*entity
 	var category entity.Category
 
 	query := `
-		SELECT id, user_id, name, type, parent_id, created_at
+		SELECT id, user_id, name, type, parent_id, icon, color, created_at
 		FROM categories 
 		WHERE id = ?
 	`
@@ -60,7 +60,7 @@ func (r *CategoryRepository) GetByUserID(ctx context.Context, userID uuid.UUID) 
 	var categories []*entity.Category
 
 	query := `
-		SELECT id, user_id, name, type, parent_id, created_at
+		SELECT id, user_id, name, type, parent_id, icon, color, created_at
 		FROM categories 
 		WHERE user_id = ?
 		ORDER BY name ASC
@@ -104,7 +104,7 @@ func (r *CategoryRepository) GetByType(ctx context.Context, userID uuid.UUID, ca
 	var categories []*entity.Category
 
 	query := `
-		SELECT id, user_id, name, type, parent_id, created_at
+		SELECT id, user_id, name, type, parent_id, icon, color, created_at
 		FROM categories 
 		WHERE user_id = ? AND type = ?
 		ORDER BY name ASC
@@ -124,7 +124,7 @@ func (r *CategoryRepository) GetChildren(ctx context.Context, parentID uuid.UUID
 	var categories []*entity.Category
 
 	query := `
-		SELECT id, user_id, name, type, parent_id, created_at
+		SELECT id, user_id, name, type, parent_id, icon, color, created_at
 		FROM categories 
 		WHERE parent_id = ?
 		ORDER BY name ASC
@@ -166,7 +166,7 @@ func (r *CategoryRepository) GetAll(ctx context.Context, userID uuid.UUID) ([]*e
 	var categories []*entity.Category
 
 	query := `
-		SELECT id, user_id, name, type, parent_id, created_at
+		SELECT id, user_id, name, type, parent_id, icon, color, created_at
 		FROM categories 
 		WHERE user_id = ?
 		ORDER BY name ASC

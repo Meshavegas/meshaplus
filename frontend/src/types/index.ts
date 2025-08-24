@@ -124,6 +124,8 @@ export interface Category {
   userId: string
   name: string
   type: 'income' | 'expense' | 'task'
+  icon: string
+  color: string
   parentId?: string
   createdAt: Date
   updatedAt: Date
@@ -136,6 +138,8 @@ export interface Account {
   name: string
   type: 'checking' | 'savings' | 'mobile_money'
   balance: number
+  icon: string
+  color: string
   currency: string
   createdAt: Date
   updatedAt: Date

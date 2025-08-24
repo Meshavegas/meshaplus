@@ -116,6 +116,8 @@ type CreateCategoryRequest struct {
 	Name     string     `json:"name" validate:"required,min=1,max=100" example:"Alimentation"`
 	Type     string     `json:"type" validate:"required,oneof=expense revenue task" example:"expense"`
 	ParentID *uuid.UUID `json:"parent_id,omitempty" validate:"omitempty,uuid" example:"123e4567-e89b-12d3-a456-426614174000"`
+	Icon     string     `json:"icon,omitempty" validate:"omitempty,max=50" example:"fad:utensils"`
+	Color    string     `json:"color,omitempty" validate:"omitempty,max=20" example:"#FF6B6B"`
 }
 
 // UpdateCategoryRequest représente la requête pour mettre à jour une catégorie
@@ -123,6 +125,8 @@ type UpdateCategoryRequest struct {
 	Name     *string    `json:"name,omitempty" validate:"omitempty,min=1,max=100" example:"Alimentation et courses"`
 	Type     *string    `json:"type,omitempty" validate:"omitempty,oneof=expense revenue task" example:"expense"`
 	ParentID *uuid.UUID `json:"parent_id,omitempty" validate:"omitempty,uuid" example:"123e4567-e89b-12d3-a456-426614174000"`
+	Icon     *string    `json:"icon,omitempty" validate:"omitempty,max=50" example:"fad:utensils"`
+	Color    *string    `json:"color,omitempty" validate:"omitempty,max=20" example:"#FF6B6B"`
 }
 
 // ==================== ACCOUNT REQUESTS ====================

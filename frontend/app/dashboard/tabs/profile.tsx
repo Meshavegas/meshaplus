@@ -2,11 +2,26 @@ import React, { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Switch, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SyncStatus } from '@/src/components/ui/SyncStatus';
+import { useAuthStore } from '@/src';
+import Icon from '@/src/components/Icons';
 
 export default function Profile() {
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [biometricEnabled, setBiometricEnabled] = useState(false);
   const [darkModeEnabled, setDarkModeEnabled] = useState(false);
+  const { user, logout } = useAuthStore()
+
+  //logout
+  const handleLogout = () => {
+    Alert.alert(
+      'Déconnexion',
+      'Voulez-vous vraiment vous déconnecter ?',
+      [
+        { text: 'Annuler', style: 'cancel' },
+        { text: 'Se déconnecter', onPress: () => logout() }
+      ]
+    );
+  };
 
   const handleExport = () => {
     Alert.alert(
@@ -251,11 +266,11 @@ export default function Profile() {
         <View className="bg-white p-4 rounded-lg shadow-sm mb-6">
           <View className="flex-row items-center">
             <View className="w-16 h-16 bg-blue-100 rounded-full items-center justify-center">
-              <Ionicons name="person" size={32} color="#3b82f6" />
+              <Icon name="fa6:user" size={32} color="#3b82f6" />
             </View>
             <View className="ml-4 flex-1">
-              <Text className="text-lg font-semibold text-gray-900">John Doe</Text>
-              <Text className="text-sm text-gray-500">john.doe@example.com</Text>
+              <Text className="text-lg font-semibold text-gray-900">{user?.name}</Text>
+              <Text className="text-sm text-gray-500">{user?.email}</Text>
             </View>
             <TouchableOpacity>
               <Ionicons name="pencil" size={20} color="#6b7280" />
@@ -270,7 +285,7 @@ export default function Profile() {
         {renderSupportSection()}
 
         {/* Logout */}
-        <TouchableOpacity className="bg-red-50 border border-red-200 rounded-lg p-4 mt-6">
+        <TouchableOpacity onPress={handleLogout} className="bg-red-50 border border-red-200 rounded-lg p-4 mt-6">
           <View className="flex-row items-center justify-center">
             <Ionicons name="log-out" size={20} color="#dc2626" />
             <Text className="text-red-700 font-semibold ml-2">Se déconnecter</Text>

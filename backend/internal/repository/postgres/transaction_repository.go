@@ -45,7 +45,7 @@ func (r *TransactionRepository) GetByID(ctx context.Context, id uuid.UUID) (*ent
 // GetByUserID récupère toutes les transactions d'un utilisateur
 func (r *TransactionRepository) GetByUserID(ctx context.Context, userID uuid.UUID) ([]*entity.Transaction, error) {
 	var transactions []*entity.Transaction
-	err := r.db.WithContext(ctx).Model(&transactions).Where("user_id = ?", userID).Order("date DESC, created_at DESC").Select()
+	err := r.db.WithContext(ctx).Model(&transactions).Where("user_id = ?", userID).Order("date DESC").Order("created_at DESC").Select()
 	if err != nil {
 		return nil, fmt.Errorf("erreur récupération transactions utilisateur: %w", err)
 	}

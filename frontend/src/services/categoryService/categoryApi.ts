@@ -5,7 +5,7 @@ const categoryApi = {
   getCategories: async (): Promise<Category[]> => {
     try {
       const response = await apiHelpers.get<{data:  Category[]}>('/categories')
-      console.log("response getCategories", response)
+     
       
       return response.data
     } catch (error) {

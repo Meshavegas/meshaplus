@@ -89,7 +89,8 @@ func main() {
 
 	// Services
 	jwtService := service.NewJWTService(cfg.JWT, loggerInstance)
-	authService := service.NewAuthService(userRepo, jwtService, loggerInstance)
+	initializationService := service.NewInitializationService(categoryRepo, accountRepo, loggerInstance)
+	authService := service.NewAuthService(userRepo, jwtService, initializationService, loggerInstance)
 	taskService := service.NewTaskService(taskRepo, loggerInstance)
 	aiService := ai.NewAIService(cfg.AI, loggerInstance)
 	transactionService := service.NewTransactionService(transactionRepo, accountRepo, categoryRepo, aiService, loggerInstance)

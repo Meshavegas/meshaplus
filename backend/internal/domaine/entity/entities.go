@@ -34,14 +34,17 @@ type Mood struct {
 }
 
 type Account struct {
-	ID        uuid.UUID `json:"id" db:"id"`
-	UserID    uuid.UUID `json:"user_id" db:"user_id"`
-	Name      string    `json:"name" db:"name"`       // ex: "Bancaire", "Cash"
-	Type      string    `json:"type" db:"type"`       // checking, savings, mobile_money
-	Balance   float64   `json:"balance" db:"balance"` // solde actuel
-	Currency  string    `json:"currency" db:"currency"`
-	CreatedAt time.Time `json:"created_at" db:"created_at"`
-	UpdatedAt time.Time `json:"updated_at" db:"updated_at"`
+	ID            uuid.UUID `json:"id" db:"id"`
+	UserID        uuid.UUID `json:"user_id" db:"user_id"`
+	Name          string    `json:"name" db:"name"`       // ex: "Bancaire", "Cash"
+	Type          string    `json:"type" db:"type"`       // checking, savings, mobile_money
+	Balance       float64   `json:"balance" db:"balance"` // solde actuel
+	Currency      string    `json:"currency" db:"currency"`
+	AccountNumber *string   `json:"account_number,omitempty" db:"account_number"`
+	Icon          string    `json:"icon" db:"icon"`
+	Color         string    `json:"color" db:"color"`
+	CreatedAt     time.Time `json:"created_at" db:"created_at"`
+	UpdatedAt     time.Time `json:"updated_at" db:"updated_at"`
 }
 
 type Transaction struct {
@@ -77,6 +80,8 @@ type Category struct {
 	Name      string     `json:"name" db:"name"`
 	Type      string     `json:"type" db:"type"`                     // expense, revenue, task
 	ParentID  *uuid.UUID `json:"parent_id,omitempty" db:"parent_id"` // sous-catégorie
+	Icon      string     `json:"icon" db:"icon"`
+	Color     string     `json:"color" db:"color"`
 	CreatedAt time.Time  `json:"created_at" db:"created_at"`
 }
 

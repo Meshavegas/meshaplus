@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StatusBar, Alert, ActivityIndicator } from 'react-native';
-import { Icon } from '@/src/components/Icons';
+import { Icon, FONTAWESOME_6 } from '@/src/components/Icons';
 import { SyncStatus } from '@/src/components/ui/SyncStatus';
 import CircularProgress from '@/src/components/ui/CircularProgress';
 import { useAuthStore } from '@/src';
@@ -24,11 +24,13 @@ import {
   TransactionStats,
   BudgetStats
 } from '@/src/types';
+import { TaskForm } from '@/src/components/forms/TaskForm';
 
 export default function Overview() {
   const { user } = useAuthStore()
   
   const [showTransactionForm, setShowTransactionForm] = useState(false)
+  const [showTaskForm, setShowTaskForm] = useState(false)
   const [transactionType, setTransactionType] = useState<'income' | 'expense'>('expense')
   const [categories, setCategories] = useState<Category[]>([])
   const [accounts, setAccounts] = useState<Account[]>([])
@@ -52,26 +54,27 @@ export default function Overview() {
         accountsData, 
         tasksData, 
         transactionsData,
-        taskStatsData,
-        transactionStatsData,
-        budgetStatsData
+        // taskStatsData,
+        // transactionStatsData,
+        // budgetStatsData
       ] = await Promise.all([
         categoryApi.getCategories(),
         accountApi.getAccounts(),
         taskApi.getTasks(),
         transactionApi.getTransactions(),
-        taskApi.getTaskStats(),
-        dashboardApi.getTransactionStats(),
-        budgetApi.getBudgetStats()
+        // taskApi.getTaskStats(),
+        // dashboardApi.getTransactionStats(),
+        // budgetApi.getBudgetStats()
       ])
       
+      console.log("categoriesData", JSON.stringify(categoriesData, null, 2))
       setCategories(categoriesData)
       setAccounts(accountsData)
       setTasks(tasksData)
-      setRecentTransactions(transactionsData.slice(0, 5)) // Limiter à 5 transactions récentes
-      setTaskStats(taskStatsData)
-      setTransactionStats(transactionStatsData)
-      setBudgetStats(budgetStatsData)
+      setRecentTransactions((transactionsData??[]).slice(0, 5)) // Limiter à 5 transactions récentes
+      // setTaskStats(taskStatsData)
+      // setTransactionStats(transactionStatsData)
+      // setBudgetStats(budgetStatsData)
     } catch (error) {
       console.error('Error loading data:', error)
       Alert.alert('Erreur', 'Impossible de charger les données')
@@ -96,6 +99,28 @@ export default function Overview() {
     setTransactionType(type)
     setShowTransactionForm(true)
   }
+
+  const handleCreateTask = async (task: any) => {
+    try {
+      await taskApi.createTask(task)
+      Alert.alert('Succès', 'Tâche créée avec succès')
+      // Rafraîchir les données après création
+      loadData()
+    } catch (error) {
+      console.error('Error creating task:', error)
+      throw error
+    }
+  }
+
+  // Catégories de tâches
+  const taskCategories = [
+    { id: 'work', name: 'Travail', color: '#3b82f6', icon: 'fa6:briefcase' },
+    { id: 'personal', name: 'Personnel', color: '#10b981', icon: 'fa6:user' },
+    { id: 'health', name: 'Santé', color: '#ef4444', icon: 'fa6:heart-pulse' },
+    { id: 'finance', name: 'Finance', color: '#f59e0b', icon: 'fa6:wallet' },
+    { id: 'education', name: 'Éducation', color: '#8b5cf6', icon: 'fa6:graduation-cap' },
+    { id: 'home', name: 'Maison', color: '#06b6d4', icon: 'fa6:house' },
+  ]
   
   if (isLoading) {
     return (
@@ -159,7 +184,7 @@ export default function Overview() {
               />
             </View>
             <Text className="text-xs text-white mt-1">
-              €{budgetStats ? (budgetStats.totalPlanned - budgetStats.totalSpent).toFixed(0) : 0} restant ce mois
+              €{budgetStats ? (budgetStats.totalPlanned - budgetStats.totalSpent)?.toFixed(0) : 0} restant ce mois
             </Text>
           </View>
         </View>
@@ -206,7 +231,7 @@ export default function Overview() {
         <View className="bg-white p-4 rounded-lg shadow-sm mb-6">
           <Text className="text-lg font-semibold text-gray-900 mb-4">Tâches Récentes</Text>
           <View className="space-y-3">
-            {tasks.slice(0, 3).map((task, index) => (
+            {tasks?.slice(0, 3).map((task, index) => (
               <View key={task.id} className="flex-row items-center">
                 <View className={`w-5 h-5 rounded-full items-center justify-center mr-3 ${
                   task.status === 'completed' ? 'bg-green-100' : 'bg-gray-200'
@@ -220,7 +245,7 @@ export default function Overview() {
                 <Text className="text-gray-700 flex-1">{task.title}</Text>
               </View>
             ))}
-            {tasks.length === 0 && (
+            {tasks?.length === 0 && (
               <Text className="text-gray-500 text-center py-4">Aucune tâche pour le moment</Text>
             )}
           </View>
@@ -234,7 +259,7 @@ export default function Overview() {
               className="flex-1 bg-[#dc2626] p-4 rounded-lg items-center"
               onPress={() => handleOpenTransactionForm('expense')}
             >
-              <Icon name="add" size={20} color="white" />
+              <Icon name={`fa6:${FONTAWESOME_6.CHART_LINE}`} size={20} color="white" />
               <Text className="text-white font-medium mt-1">Dépense</Text>
             </TouchableOpacity>
             <TouchableOpacity 
@@ -244,7 +269,10 @@ export default function Overview() {
               <Icon name="add" size={20} color="white" />
               <Text className="text-white font-medium mt-1">Revenu</Text>
             </TouchableOpacity>
-            <TouchableOpacity className="flex-1 bg-blue-600 p-4 rounded-lg items-center">
+            <TouchableOpacity 
+              className="flex-1 bg-blue-600 p-4 rounded-lg items-center"
+              onPress={() => setShowTaskForm(true)}
+            >
               <Icon name="flag" size={20} color="white" />
               <Text className="text-white font-medium mt-1">Taches</Text>
             </TouchableOpacity>
@@ -255,7 +283,7 @@ export default function Overview() {
         <View className="bg-white p-4 rounded-lg shadow-sm">
           <Text className="text-lg font-semibold text-gray-900 mb-4">Activité Récente</Text>
           <View className="space-y-3">
-            {recentTransactions.slice(0, 3).map((transaction) => (
+            {recentTransactions?.slice(0, 3).map((transaction) => (
               <View key={transaction.id} className="flex-row justify-between items-center">
                 <View className="flex-row items-center">
                   <View className={`w-8 h-8 rounded-full items-center justify-center mr-3 ${
@@ -296,6 +324,13 @@ export default function Overview() {
         categories={categories}
         accounts={accounts}
         defaultType={transactionType}
+      />
+      <TaskForm
+        visible={showTaskForm}
+        onClose={() => setShowTaskForm(false)}
+        onSubmit={handleCreateTask}
+        categories={taskCategories}
+        defaultStatus="todo"
       />
     </ScrollView>
   );

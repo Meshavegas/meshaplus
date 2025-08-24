@@ -11,10 +11,12 @@ import {
   Platform,
   Pressable,
 } from 'react-native'
-import { Ionicons } from '@expo/vector-icons'
 import { Button } from '@/src/components/ui/Button'
 import { colors, spacing } from '@/src/theme'
 import { CreateTransactionRequest, Category, Account } from '@/src/types'
+import Select from '../Select'
+import Icon from '../Icons'
+import { isEmpty } from '@/src/utils/stringUtils'
 
 interface TransactionFormProps {
   visible: boolean
@@ -104,6 +106,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
     return date.toLocaleDateString('fr-FR')
   }
 
+
   return (
     <Modal
       visible={visible}
@@ -119,7 +122,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
           {/* Header */}
           <View className="flex-row items-center justify-between p-4 border-b border-gray-200">
             <TouchableOpacity onPress={onClose}>
-              <Ionicons name="close" size={24} color={colors.text.primary} />
+              <Icon name="close" size={24} color={colors.text.primary} />
             </TouchableOpacity>
             <Text className="text-lg font-semibold text-gray-900">
               Nouvelle Transaction
@@ -141,7 +144,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
                   onPress={() => setType('expense')}
                 >
                   <View className="items-center">
-                    <Ionicons 
+                    <Icon 
                       name="arrow-down-circle" 
                       size={24} 
                       color={type === 'expense' ? colors.error[500] : colors.text.tertiary} 
@@ -161,7 +164,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
                   onPress={() => setType('income')}
                 >
                   <View className="items-center">
-                    <Ionicons 
+                    <Icon 
                       name="arrow-up-circle" 
                       size={24} 
                       color={type === 'income' ? colors.success[500] : colors.text.tertiary} 
@@ -184,7 +187,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
               <View className={`flex-row items-center border rounded-lg px-4 py-3 ${
                 errors.amount ? 'border-red-500' : 'border-gray-300'
               } bg-gray-50`}>
-                <Ionicons 
+                <Icon 
                   name="cash-outline" 
                   size={20} 
                   color={colors.text.tertiary} 
@@ -215,12 +218,21 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
               <Text className="text-sm font-medium mb-2 text-gray-900">
                 Compte *
               </Text>
-            <ScrollView horizontal>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              <View className="flex-row gap-2">
+
               {(accounts??[]).map((account) => (
-                <Pressable key={account.id} className="bg-primary p-2 rounded-lg px-4 py-4" onPress={() => setSelectedAccount(account)}>
-                  <Text className="text-white">{account.name}</Text>
+                <Pressable key={account.id} className={`flex-row items-center gap-2 py-4 px-4 rounded-xl overflow-hidden`} style={{ backgroundColor: selectedAccount?.id === account.id ? `#${(isEmpty(account.color)?"#000":account.color).replace('#', '')}` : `#${account.color.replace('#', '')}87`, borderRadius: 10, borderWidth: 1, borderColor: selectedAccount?.id === account.id ? `#${account.color.replace('#', '')}` : `#${account.color.replace('#', '')}87` }} onPress={() => setSelectedAccount(account)}>
+                 <View className="flex-row items-center gap-2">
+
+                  <Text>
+                    <Icon name={account.icon as any} size={20} color={`${ selectedAccount?.id !== account.id ? account.color : '#fff' }`} />
+                    </Text>
+                  <Text className="text-white">{account.name}</Text> 
+                 </View>
                 </Pressable>
               ))}
+              </View>
             </ScrollView>
               {errors.account && (
                 <Text className="text-sm mt-1 text-red-500">{errors.account}</Text>
@@ -232,30 +244,42 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
               <Text className="text-sm font-medium mb-2 text-gray-900">
                 Catégorie (optionnel)
               </Text>
-              <TouchableOpacity
-                className="flex-row items-center justify-between border border-gray-300 rounded-lg px-4 py-3 bg-gray-50"
-                onPress={() => {
-                  if (filteredCategories.length === 0) {
-                    Alert.alert('Aucune catégorie', 'Aucune catégorie disponible')
-                    return
-                  }
-                }}
-              >
-                <View className="flex-row items-center">
-                  <Ionicons 
-                    name="pricetag-outline" 
-                    size={20} 
-                    color={colors.text.tertiary} 
-                    style={{ marginRight: spacing.sm }}
-                  />
-                  <Text className={`text-base ${
-                    selectedCategory ? 'text-gray-900' : 'text-gray-500'
-                  }`}>
-                    {selectedCategory ? selectedCategory.name : 'Sélectionner une catégorie'}
-                  </Text>
-                </View>
-                <Ionicons name="chevron-down" size={20} color={colors.text.tertiary} />
-              </TouchableOpacity>
+             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              <View className="flex-row gap-2">
+              {categories?.filter(category => category.type === (type==="income"?"revenue":type))?.map(category => (
+                <Pressable
+                  key={category.id}
+                  className={`flex-row items-center gap-2 py-4 px-4 rounded-xl overflow-hidden`}
+                  style={{
+                    backgroundColor:
+                      selectedCategory?.id === category.id
+                        ? `#${category.color.replace('#', '')}`
+                        : `#${category.color.replace('#', '')}87`,
+                    borderRadius: 10,
+                    borderWidth: 1,
+                    borderColor:
+                      selectedCategory?.id === category.id
+                        ? `#${category.color.replace('#', '')}`
+                        : `#${category.color.replace('#', '')}87`,
+                  }}
+                  onPress={() => {
+                    if (selectedCategory?.id === category.id) {
+                      setSelectedCategory(null);
+                    } else {
+                      setSelectedCategory(category);
+                    }
+                  }}
+                >
+                  <View className="flex-row items-center gap-2">
+                    <Text>
+                      <Icon name={category.icon as any} size={20} color={`${ selectedCategory?.id !== category.id ? category.color : '#fff' }`} />
+                    </Text>
+                    <Text className="text-white">{category.name}</Text>
+                  </View>
+                </Pressable>
+              ))}
+              </View>
+             </ScrollView>
             </View>
 
             {/* Date */}
@@ -265,7 +289,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
               </Text>
               <View className="flex-row items-center justify-between border border-gray-300 rounded-lg px-4 py-3 bg-gray-50">
                 <View className="flex-row items-center">
-                  <Ionicons 
+                  <Icon 
                     name="calendar-outline" 
                     size={20} 
                     color={colors.text.tertiary} 

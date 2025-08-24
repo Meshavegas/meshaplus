@@ -21,6 +21,8 @@
     "@expo/vector-icons": "^14.1.0",
     "@react-native-community/netinfo": "11.4.1",
     "@rn-primitives/portal": "^1.3.0",
+    "@rn-primitives/select": "^1.2.0",
+    "@rn-primitives/slot": "^1.2.0",
     "@tanstack/react-query": "^5.83.0",
     "axios": "^1.11.0",
     "class-variance-authority": "^0.7.1",

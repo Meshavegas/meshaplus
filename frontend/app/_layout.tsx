@@ -1,4 +1,4 @@
-import { Redirect, Stack } from 'expo-router';
+import { Redirect, router, Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { View, ActivityIndicator } from 'react-native';
 import { PortalHost } from '@rn-primitives/portal';
@@ -7,6 +7,7 @@ import '@/global.css';
 import { useIsAuthenticated, useAuthLoading } from '@/src';
 import { useAuthInit } from '@/src/hooks/useAuthInit';
 import { colors } from '@/src/theme';
+import { useEffect } from 'react';
 
 export default function RootLayout() {
   // Initialiser l'authentification au démarrage
@@ -22,6 +23,7 @@ export default function RootLayout() {
       </View>
     )
   }
+
   return (
     <>
       <Stack screenOptions={{ headerShown: false }}>

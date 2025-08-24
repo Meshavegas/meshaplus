@@ -13,17 +13,19 @@ import (
 
 // AuthService gère l'authentification des utilisateurs
 type AuthService struct {
-	userRepo   repository.UserRepository
-	jwtService *JWTService
-	logger     logger.Logger
+	userRepo              repository.UserRepository
+	jwtService            *JWTService
+	initializationService *InitializationService
+	logger                logger.Logger
 }
 
 // NewAuthService crée une nouvelle instance de AuthService
-func NewAuthService(userRepo repository.UserRepository, jwtService *JWTService, logger logger.Logger) *AuthService {
+func NewAuthService(userRepo repository.UserRepository, jwtService *JWTService, initializationService *InitializationService, logger logger.Logger) *AuthService {
 	return &AuthService{
-		userRepo:   userRepo,
-		jwtService: jwtService,
-		logger:     logger,
+		userRepo:              userRepo,
+		jwtService:            jwtService,
+		initializationService: initializationService,
+		logger:                logger,
 	}
 }
 
@@ -133,6 +135,20 @@ func (a *AuthService) Register(ctx context.Context, req RegisterRequest) (*Login
 	if err := a.userRepo.Create(ctx, user); err != nil {
 		a.logger.Error("Erreur création utilisateur", logger.Error(err))
 		return nil, fmt.Errorf("erreur création utilisateur: %w", err)
+	}
+
+	// Initialiser les données par défaut pour le nouvel utilisateur
+	if err := a.initializationService.InitializeUserData(ctx, user.ID); err != nil {
+		a.logger.Error("Erreur initialisation données utilisateur", logger.Error(err))
+		// On ne fait pas échouer l'inscription si l'initialisation échoue
+		// L'utilisateur peut toujours utiliser l'application
+		// Mais on log l'erreur pour le debugging
+		a.logger.Warn("L'inscription a réussi mais l'initialisation des données par défaut a échoué",
+			logger.String("user_id", user.ID.String()),
+			logger.Error(err))
+	} else {
+		a.logger.Info("Initialisation des données par défaut réussie",
+			logger.String("user_id", user.ID.String()))
 	}
 
 	// Générer les tokens

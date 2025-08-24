@@ -52,6 +52,8 @@ func (s *CategoryService) CategorizeItem(ctx context.Context, userID uuid.UUID, 
 			UserID: userID,
 			Name:   categoryResponse.CategoryName,
 			Type:   categoryType,
+			Icon:   categoryResponse.Icon,
+			Color:  categoryResponse.Color,
 		}
 
 		if err := s.categoryRepo.Create(ctx, newCategory); err != nil {
@@ -61,7 +63,9 @@ func (s *CategoryService) CategorizeItem(ctx context.Context, userID uuid.UUID, 
 
 		s.logger.Info("Nouvelle catégorie créée",
 			logger.String("name", categoryResponse.CategoryName),
-			logger.String("type", categoryType))
+			logger.String("type", categoryType),
+			logger.String("icon", categoryResponse.Icon),
+			logger.String("color", categoryResponse.Color))
 	}
 
 	return categoryResponse, nil
@@ -98,6 +102,8 @@ func (s *CategoryService) CreateCategory(ctx context.Context, userID uuid.UUID, 
 		Name:     req.Name,
 		Type:     req.Type,
 		ParentID: req.ParentID,
+		Icon:     req.Icon,
+		Color:    req.Color,
 	}
 
 	if err := s.categoryRepo.Create(ctx, category); err != nil {

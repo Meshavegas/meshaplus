@@ -3,6 +3,7 @@ import { persist, createJSONStorage } from 'zustand/middleware'
 import { User } from '@/src/types'
 import { storage } from '@/src/services/storage/mmkv'
 import authApi from '../services/authService/authApi'
+import { router } from 'expo-router'
 
 interface AuthState {
   user: User | null
@@ -41,7 +42,7 @@ export const useAuthStore = create<AuthStore>()(
 
       // Actions
       login: async (email: string, password: string) => {
-        set({ isLoading: true, error: null })
+        set({  error: null })
         try {
           const response = await authApi.login(email, password)
 
@@ -111,6 +112,7 @@ export const useAuthStore = create<AuthStore>()(
           isAuthenticated: false,
           error: null
         })
+        router.push('/auth/login')
       },
 
       setUser: (user: User) => {

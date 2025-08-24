@@ -189,6 +189,38 @@ func createCategoriesTable(db *pg.DB, loggerInstance logger.Logger) error {
 		return err
 	}
 
+	// Ajouter la colonne icon si elle n'existe pas
+	iconMigrationQuery := `
+	DO $$ 
+	BEGIN 
+		IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'categories' AND column_name = 'icon') THEN
+			ALTER TABLE categories ADD COLUMN icon VARCHAR(50);
+		END IF;
+	END $$;
+	`
+
+	_, err = db.Exec(iconMigrationQuery)
+	if err != nil {
+		loggerInstance.Error("Erreur ajout colonne icon", logger.Error(err))
+		return err
+	}
+
+	// Ajouter la colonne color si elle n'existe pas
+	colorMigrationQuery := `
+	DO $$ 
+	BEGIN 
+		IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'categories' AND column_name = 'color') THEN
+			ALTER TABLE categories ADD COLUMN color VARCHAR(20);
+		END IF;
+	END $$;
+	`
+
+	_, err = db.Exec(colorMigrationQuery)
+	if err != nil {
+		loggerInstance.Error("Erreur ajout colonne color", logger.Error(err))
+		return err
+	}
+
 	// Créer les index
 	indexQueries := []string{
 		`CREATE INDEX IF NOT EXISTS idx_categories_user_id ON categories(user_id);`,
@@ -903,7 +935,7 @@ func createAccountsTable(db *pg.DB, loggerInstance logger.Logger) error {
 		id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 		user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
 		name VARCHAR(255) NOT NULL,
-		type VARCHAR(50) NOT NULL CHECK (type IN ('checking', 'savings', 'mobile_money')),
+		type VARCHAR(50) NOT NULL CHECK (type IN ('checking', 'savings', 'mobile_money', 'cash', 'bank')),
 		balance DECIMAL(10,2) NOT NULL DEFAULT 0,
 		currency VARCHAR(3) NOT NULL DEFAULT 'USD',
 		created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
@@ -917,6 +949,74 @@ func createAccountsTable(db *pg.DB, loggerInstance logger.Logger) error {
 	_, err := db.Exec(query)
 	if err != nil {
 		loggerInstance.Error("Erreur création table accounts", logger.Error(err))
+		return err
+	}
+
+	// Ajouter la colonne icon si elle n'existe pas
+	iconMigrationQuery := `
+	DO $$ 
+	BEGIN 
+		IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'accounts' AND column_name = 'icon') THEN
+			ALTER TABLE accounts ADD COLUMN icon VARCHAR(50);
+		END IF;
+	END $$;
+	`
+
+	_, err = db.Exec(iconMigrationQuery)
+	if err != nil {
+		loggerInstance.Error("Erreur ajout colonne icon", logger.Error(err))
+		return err
+	}
+
+	// Ajouter la colonne color si elle n'existe pas
+	colorMigrationQuery := `
+	DO $$ 
+	BEGIN 
+		IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'accounts' AND column_name = 'color') THEN
+			ALTER TABLE accounts ADD COLUMN color VARCHAR(20);
+		END IF;
+	END $$;
+	`
+
+	_, err = db.Exec(colorMigrationQuery)
+	if err != nil {
+		loggerInstance.Error("Erreur ajout colonne color", logger.Error(err))
+		return err
+	}
+
+	// Ajouter la colonne account_number si elle n'existe pas
+	accountNumberMigrationQuery := `
+	DO $$ 
+	BEGIN 
+		IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'accounts' AND column_name = 'account_number') THEN
+			ALTER TABLE accounts ADD COLUMN account_number VARCHAR(50);
+		END IF;
+	END $$;
+	`
+
+	_, err = db.Exec(accountNumberMigrationQuery)
+	if err != nil {
+		loggerInstance.Error("Erreur ajout colonne account_number", logger.Error(err))
+		return err
+	}
+
+	// Mettre à jour la contrainte CHECK pour inclure les nouveaux types
+	updateCheckConstraintQuery := `
+	DO $$ 
+	BEGIN 
+		-- Supprimer l'ancienne contrainte si elle existe
+		IF EXISTS (SELECT 1 FROM information_schema.check_constraints WHERE constraint_name = 'accounts_type_check') THEN
+			ALTER TABLE accounts DROP CONSTRAINT accounts_type_check;
+		END IF;
+		
+		-- Ajouter la nouvelle contrainte avec tous les types
+		ALTER TABLE accounts ADD CONSTRAINT accounts_type_check CHECK (type IN ('checking', 'savings', 'mobile_money', 'cash', 'bank'));
+	END $$;
+	`
+
+	_, err = db.Exec(updateCheckConstraintQuery)
+	if err != nil {
+		loggerInstance.Error("Erreur mise à jour contrainte CHECK type", logger.Error(err))
 		return err
 	}
 

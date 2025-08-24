@@ -19,6 +19,8 @@ type AIService struct {
 // CategoryResponse représente la réponse structurée de l'IA
 type CategoryResponse struct {
 	CategoryName  string `json:"categoryName"`
+	Icon          string `json:"icon"`
+	Color         string `json:"color"`
 	IsNewCategory bool   `json:"isNewCategory"`
 	Confidence    int    `json:"confidence"`
 	Reasoning     string `json:"reasoning"`
@@ -50,7 +52,20 @@ Instructions:
 1. Si une catégorie existante correspond bien à l'item, utilisez-la
 2. Si aucune catégorie existante ne convient, proposez une nouvelle catégorie logique et descriptive
 3. Le nom de la catégorie doit être en français, court et clair
-4. Expliquez votre raisonnement
+4. Pour chaque catégorie (nouvelle ou existante), proposez une icône appropriée au format "library:iconname"
+5. Utilisez les bibliothèques d'icônes suivantes:
+   - fad: FontAwesome Duotone (icônes avec deux couleurs)
+   - fas: FontAwesome Solid (icônes pleines)
+   - far: FontAwesome Regular (icônes régulières)
+   - fab: FontAwesome Brands (marques)
+   - io: Ionicons
+   - md: Material Icons
+   - mc: Material Community Icons
+6. Pour chaque catégorie, proposez une couleur hexadécimale appropriée (ex: #FF6B6B pour rouge, #4ECDC4 pour turquoise)
+7. Expliquez votre raisonnement
+
+Exemples d'icônes: "fad:utensils", "fas:shopping-cart", "io:restaurant", "md:food-bank"
+Exemples de couleurs: "#FF6B6B", "#4ECDC4", "#45B7D1", "#96CEB4", "#FFEAA7"
 
 Répondez avec la structure JSON demandée.`, currentItem, existingsCat)
 
@@ -63,6 +78,12 @@ Répondez avec la structure JSON demandée.`, currentItem, existingsCat)
 				"categoryName": {
 					Type: genai.TypeString,
 				},
+				"icon": {
+					Type: genai.TypeString,
+				},
+				"color": {
+					Type: genai.TypeString,
+				},
 				"isNewCategory": {
 					Type: genai.TypeBoolean,
 				},
@@ -73,7 +94,7 @@ Répondez avec la structure JSON demandée.`, currentItem, existingsCat)
 					Type: genai.TypeString,
 				},
 			},
-			PropertyOrdering: []string{"categoryName", "isNewCategory", "confidence", "reasoning"},
+			PropertyOrdering: []string{"categoryName", "icon", "color", "isNewCategory", "confidence", "reasoning"},
 		},
 	}
 
