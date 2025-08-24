@@ -1,0 +1,63 @@
+{
+  "ai_generated_preferences": {
+    "description": "Exemple de préférences générées automatiquement par l'AI lors de l'enregistrement",
+    "user_info": {
+      "name": "Marie Dupont",
+      "email": "marie.dupont@example.com"
+    },
+    "generated_preferences": {
+      "income": {
+        "sources": ["Salaire", "Freelance"],
+        "monthly_total": 180000,
+        "accounts": ["Compte Bancaire", "Mobile Money"],
+        "has_debt": false,
+        "debt_amount": 0
+      },
+      "expenses": {
+        "top_categories": ["Nourriture", "Transport", "Logement"],
+        "food": 70000,
+        "transport": 25000,
+        "housing": 90000,
+        "subscriptions": 20000,
+        "alerts_enabled": true,
+        "auto_budget": true
+      },
+      "goals": {
+        "main_goal": "Voyage",
+        "secondary_goal": "Épargne d'urgence",
+        "savings_target": 60000,
+        "deadline": "6 mois",
+        "advice_enabled": true
+      },
+      "habits": {
+        "planning_time": "Soir",
+        "daily_focus_time": "45min",
+        "custom_habit": "Planification hebdomadaire des repas",
+        "summary_type": "Hebdomadaire"
+      }
+    }
+  },
+  "ai_personalized_advice": {
+    "description": "Exemples de conseils personnalisés générés par l'AI",
+    "budget_advice": {
+      "type": "budget",
+      "content": "Basé sur vos dépenses mensuelles de 205 000 XAF, je recommande de créer un budget détaillé. Votre logement représente 44% de vos dépenses, ce qui est élevé. Considérez chercher un logement moins cher ou négocier votre loyer. Pour la nourriture (70 000 XAF), planifiez vos repas à l'avance pour réduire les dépenses imprévues."
+    },
+    "savings_advice": {
+      "type": "savings",
+      "content": "Pour atteindre votre objectif de voyage de 60 000 XAF en 6 mois, vous devez épargner 10 000 XAF par mois. Je suggère d'automatiser un virement de 5 000 XAF chaque quinzaine vers votre compte d'épargne. Cela représente seulement 5% de vos revenus, un objectif très réalisable !"
+    },
+    "habits_advice": {
+      "type": "habits",
+      "content": "Votre habitude de planification le soir est excellente ! Pour optimiser vos 45 minutes quotidiennes, commencez par 15 minutes de revue des dépenses, puis 20 minutes de planification du lendemain, et terminez par 10 minutes de visualisation de vos objectifs. Cette routine vous aidera à rester motivée."
+    }
+  },
+  "integration_flow": {
+    "step1": "Utilisateur s'inscrit avec nom et email",
+    "step2": "AI analyse les informations utilisateur",
+    "step3": "AI génère des préférences par défaut personnalisées",
+    "step4": "Préférences sont automatiquement créées en base",
+    "step5": "Utilisateur peut modifier les préférences via le wizard",
+    "step6": "AI génère des conseils personnalisés basés sur les préférences"
+  }
+} 

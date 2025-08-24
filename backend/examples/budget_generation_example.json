@@ -1,0 +1,111 @@
+{
+  "automatic_budget_generation": {
+    "description": "Comment les budgets sont automatiquement créés à partir des préférences utilisateur",
+    "flow": {
+      "step1": "Utilisateur s'inscrit",
+      "step2": "AI génère des préférences avec auto_budget: true",
+      "step3": "Système crée automatiquement des budgets pour le mois actuel",
+      "step4": "Budgets visibles dans /api/v1/budgets"
+    },
+    "example_generated_preferences": {
+      "expenses": {
+        "food": 70000,
+        "transport": 25000,
+        "housing": 90000,
+        "subscriptions": 20000,
+        "auto_budget": true
+      }
+    },
+    "example_generated_budgets": [
+      {
+        "id": "uuid",
+        "user_id": "user-uuid",
+        "category_id": "nourriture-category-uuid",
+        "amount_planned": 70000,
+        "amount_spent": 0,
+        "month": 8,
+        "year": 2025,
+        "created_at": "2025-08-24T00:00:00Z"
+      },
+      {
+        "id": "uuid",
+        "user_id": "user-uuid", 
+        "category_id": "transport-category-uuid",
+        "amount_planned": 25000,
+        "amount_spent": 0,
+        "month": 8,
+        "year": 2025,
+        "created_at": "2025-08-24T00:00:00Z"
+      },
+      {
+        "id": "uuid",
+        "user_id": "user-uuid",
+        "category_id": "logement-category-uuid", 
+        "amount_planned": 90000,
+        "amount_spent": 0,
+        "month": 8,
+        "year": 2025,
+        "created_at": "2025-08-24T00:00:00Z"
+      },
+      {
+        "id": "uuid",
+        "user_id": "user-uuid",
+        "category_id": "abonnements-category-uuid",
+        "amount_planned": 20000,
+        "amount_spent": 0,
+        "month": 8,
+        "year": 2025,
+        "created_at": "2025-08-24T00:00:00Z"
+      }
+    ]
+  },
+  "why_budgets_were_missing": {
+    "previous_behavior": {
+      "step1": "Utilisateur s'inscrivait",
+      "step2": "Catégories et comptes par défaut créés",
+      "step3": "Préférences créées avec montants",
+      "step4": "MAIS aucun budget concret créé",
+      "result": "Préférences existaient mais pas de budgets visibles"
+    },
+    "new_behavior": {
+      "step1": "Utilisateur s'inscrit", 
+      "step2": "Catégories et comptes par défaut créés",
+      "step3": "Préférences générées par AI",
+      "step4": "Si auto_budget = true → Budgets automatiquement créés",
+      "result": "Budgets concrets immédiatement disponibles"
+    }
+  },
+  "mapping_preferences_to_budgets": {
+    "description": "Comment les préférences sont mappées vers des budgets concrets",
+    "mapping": [
+      {
+        "preference_field": "expenses.food",
+        "budget_category": "Nourriture",
+        "amount_planned": "valeur de expenses.food"
+      },
+      {
+        "preference_field": "expenses.transport", 
+        "budget_category": "Transport",
+        "amount_planned": "valeur de expenses.transport"
+      },
+      {
+        "preference_field": "expenses.housing",
+        "budget_category": "Logement", 
+        "amount_planned": "valeur de expenses.housing"
+      },
+      {
+        "preference_field": "expenses.subscriptions",
+        "budget_category": "Abonnements",
+        "amount_planned": "valeur de expenses.subscriptions"
+      }
+    ]
+  },
+  "api_endpoints_to_test": {
+    "after_registration": [
+      "GET /api/v1/budgets - Devrait maintenant retourner des budgets",
+      "GET /api/v1/preferences - Voir les préférences générées", 
+      "GET /api/v1/categories - Voir les catégories par défaut",
+      "GET /api/v1/accounts - Voir les comptes par défaut"
+    ]
+  }
+}

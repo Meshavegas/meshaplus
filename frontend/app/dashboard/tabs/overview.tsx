@@ -12,12 +12,12 @@ import taskApi from '@/src/services/taskService/taskApi';
 import budgetApi from '@/src/services/budgetService/budgetApi';
 import savingGoalApi from '@/src/services/savingGoalService/savingGoalApi';
 import dashboardApi from '@/src/services/dashboardService/dashboardApi';
-import { 
-  CreateTransactionRequest, 
-  Category, 
-  Account, 
-  Task, 
-  Budget, 
+import {
+  CreateTransactionRequest,
+  Category,
+  Account,
+  Task,
+  Budget,
   SavingGoal,
   DashboardData,
   TaskStats,
@@ -25,10 +25,11 @@ import {
   BudgetStats
 } from '@/src/types';
 import { TaskForm } from '@/src/components/forms/TaskForm';
+import { Link, Redirect } from 'expo-router';
 
 export default function Overview() {
-  const { user } = useAuthStore()
-  
+  const { user, require_preferences } = useAuthStore()
+
   const [showTransactionForm, setShowTransactionForm] = useState(false)
   const [showTaskForm, setShowTaskForm] = useState(false)
   const [transactionType, setTransactionType] = useState<'income' | 'expense'>('expense')
@@ -50,13 +51,13 @@ export default function Overview() {
     try {
       setIsLoading(true)
       const [
-        categoriesData, 
-        accountsData, 
-        tasksData, 
+        categoriesData,
+        accountsData,
+        tasksData,
         transactionsData,
         // taskStatsData,
         // transactionStatsData,
-        // budgetStatsData
+        budgetStatsData
       ] = await Promise.all([
         categoryApi.getCategories(),
         accountApi.getAccounts(),
@@ -64,14 +65,14 @@ export default function Overview() {
         transactionApi.getTransactions(),
         // taskApi.getTaskStats(),
         // dashboardApi.getTransactionStats(),
-        // budgetApi.getBudgetStats()
+        budgetApi.getBudgets()
       ])
-      
-      console.log("categoriesData", JSON.stringify(categoriesData, null, 2))
+
+      console.log("categoriesData", JSON.stringify(budgetStatsData, null, 2))
       setCategories(categoriesData)
       setAccounts(accountsData)
       setTasks(tasksData)
-      setRecentTransactions((transactionsData??[]).slice(0, 5)) // Limiter à 5 transactions récentes
+      setRecentTransactions((transactionsData ?? []).slice(0, 5)) // Limiter à 5 transactions récentes
       // setTaskStats(taskStatsData)
       // setTransactionStats(transactionStatsData)
       // setBudgetStats(budgetStatsData)
@@ -121,7 +122,7 @@ export default function Overview() {
     { id: 'education', name: 'Éducation', color: '#8b5cf6', icon: 'fa6:graduation-cap' },
     { id: 'home', name: 'Maison', color: '#06b6d4', icon: 'fa6:house' },
   ]
-  
+
   if (isLoading) {
     return (
       <View className="flex-1 bg-gray-50 mt-safe justify-center items-center">
@@ -130,42 +131,48 @@ export default function Overview() {
       </View>
     )
   }
+   
+
+  if (require_preferences) {
+    return <Redirect href="/dashboard/wizard" />
+  }
 
   return (
     <ScrollView className="flex-1 bg-gray-50 mt-safe">
       <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
       <View className="p-4">
         <View className='flex-row items-center justify-between gap-2'>
-        <View className='flex-row items-center gap-2'>
-          <View className='h-12 w-12 bg-primary items-center justify-center rounded-full'> 
-            <Text className="text-2xl font-bold text-white">MV</Text>
+          <View className='flex-row items-center gap-2'>
+            <View className='h-12 w-12 bg-primary items-center justify-center rounded-full'>
+              <Text className="text-2xl font-bold text-white">MV</Text>
+            </View>
+            <View className='flex-col'>
+              <Text className="text-md font-bold text-gray-900">{user?.name}</Text>
+              <Text className="text-xs text-gray-500">Bienvenue sur votre tableau de bord</Text>
+            </View>
           </View>
-          <View className='flex-col'>
-          <Text className="text-md font-bold text-gray-900">{user?.name}</Text>
-          <Text className="text-xs text-gray-500">Bienvenue sur votre tableau de bord</Text>
-          </View>
-        </View>
           <SyncStatus />
         </View>
 
         {/* Daily Budget Status */}
         <View className="bg-white  rounded-lg shadow-sm mb-6 mt-3  overflow-hidden">
-         
-          
-            <View className='flex-row items-center bg-primary/30 '>
-              <CircularProgress 
-                progressPercent={taskStats ? (taskStats.completedTasks / taskStats.totalTasks) * 100 : 0} 
-                size={60} 
-                strokeWidth={10} 
-                text={`${taskStats?.completedTasks || 0}/${taskStats?.totalTasks || 0}`} 
-                textSize={20}
-              />
-              <View className=' flex flex-col gap-2'>
+
+
+          <View className='flex-row items-center bg-primary/30 '>
+            <CircularProgress
+              progressPercent={taskStats ? (taskStats.completedTasks / taskStats.totalTasks) * 100 : 0}
+              size={60}
+              strokeWidth={10}
+              text={`${taskStats?.completedTasks || 0}/${taskStats?.totalTasks || 0}`}
+              textSize={20}
+            />
+            <View className=' flex flex-col gap-2'>
               <Text className="text-md font-bold text-gray-900 ">Taches</Text>
               <Text>{taskStats?.pendingTasks || 0} tâches en attente</Text>
-              </View>
             </View>
-          
+          </View>
+
+
           <View className="bg-teal/70 px-4 py-4">
             <View className="flex-row justify-between items-center">
               <Text className="text-sm text-white">Budget mensuel</Text>
@@ -174,13 +181,13 @@ export default function Overview() {
               </Text>
             </View>
             <View className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
-              <View 
-                className="bg-teal-500 h-3 rounded-full" 
-                style={{ 
-                  width: `${budgetStats && budgetStats.totalPlanned > 0 
-                    ? Math.min((budgetStats.totalSpent / budgetStats.totalPlanned) * 100, 100) 
-                    : 0}%` 
-                }} 
+              <View
+                className="bg-teal-500 h-3 rounded-full"
+                style={{
+                  width: `${budgetStats && budgetStats.totalPlanned > 0
+                    ? Math.min((budgetStats.totalSpent / budgetStats.totalPlanned) * 100, 100)
+                    : 0}%`
+                }}
               />
             </View>
             <Text className="text-xs text-white mt-1">
@@ -189,38 +196,38 @@ export default function Overview() {
           </View>
         </View>
 
-        
+
         <View>
           <Text className="text-md text-black">Mois en cours</Text>
           <View className="space-y-4 mb-2 mt-2 flex flex-row gap-2">
-          
-          <View className="bg-white px-4 py-2 flex flex-col justify-between rounded-lg shadow-sm flex-1">
-            <Text className="text-[12px] text-gray-500">Solde Total</Text>
-            <Text className="text-md font-bold text-green-600">€{transactionStats?.netAmount?.toFixed(0) || 0}</Text>
-            <Text className="text-xs text-green-600">
-              {transactionStats?.netAmount && transactionStats.netAmount > 0 ? '+' : ''}€{transactionStats?.netAmount?.toFixed(0) || 0} ce mois
-            </Text>
+
+            <View className="bg-white px-4 py-2 flex flex-col justify-between rounded-lg shadow-sm flex-1">
+              <Text className="text-[12px] text-gray-500">Solde Total</Text>
+              <Text className="text-md font-bold text-green-600">€{transactionStats?.netAmount?.toFixed(0) || 0}</Text>
+              <Text className="text-xs text-green-600">
+                {transactionStats?.netAmount && transactionStats.netAmount > 0 ? '+' : ''}€{transactionStats?.netAmount?.toFixed(0) || 0} ce mois
+              </Text>
+            </View>
+
+            <View className="bg-white px-4 py-2 flex flex-col justify-between rounded-lg shadow-sm flex-1">
+              <Text className="text-[12px] text-gray-500">Dépenses</Text>
+              <Text className="text-md font-bold text-red-600">€{transactionStats?.totalExpense?.toFixed(0) || 0}</Text>
+              <Text className="text-xs text-red-600">
+                {budgetStats && budgetStats.totalPlanned > 0
+                  ? `${((budgetStats.totalSpent / budgetStats.totalPlanned) * 100).toFixed(0)}% du budget`
+                  : '0% du budget'
+                }
+              </Text>
+            </View>
+
+            <View className="bg-white px-4 py-2 flex flex-col justify-between rounded-lg shadow-sm flex-1">
+              <Text className="text-[12px] text-gray-500">Revenus</Text>
+              <Text className="text-md font-bold text-blue-600">€{transactionStats?.totalIncome?.toFixed(0) || 0}</Text>
+              <Text className="text-xs text-blue-600">
+                {transactionStats?.totalIncome && transactionStats.totalIncome > 0 ? '+' : ''}€{transactionStats?.totalIncome?.toFixed(0) || 0}
+              </Text>
+            </View>
           </View>
-          
-          <View className="bg-white px-4 py-2 flex flex-col justify-between rounded-lg shadow-sm flex-1">
-            <Text className="text-[12px] text-gray-500">Dépenses</Text>
-            <Text className="text-md font-bold text-red-600">€{transactionStats?.totalExpense?.toFixed(0) || 0}</Text>
-            <Text className="text-xs text-red-600">
-              {budgetStats && budgetStats.totalPlanned > 0 
-                ? `${((budgetStats.totalSpent / budgetStats.totalPlanned) * 100).toFixed(0)}% du budget`
-                : '0% du budget'
-              }
-            </Text>
-          </View>
-          
-          <View className="bg-white px-4 py-2 flex flex-col justify-between rounded-lg shadow-sm flex-1">
-            <Text className="text-[12px] text-gray-500">Revenus</Text>
-            <Text className="text-md font-bold text-blue-600">€{transactionStats?.totalIncome?.toFixed(0) || 0}</Text>
-            <Text className="text-xs text-blue-600">
-              {transactionStats?.totalIncome && transactionStats.totalIncome > 0 ? '+' : ''}€{transactionStats?.totalIncome?.toFixed(0) || 0}
-            </Text>
-          </View>
-        </View>
         </View>
 
         <View className='w-full h-[200px] bg-white rounded-lg shadow-sm mb-6 items-center justify-center'>
@@ -233,9 +240,8 @@ export default function Overview() {
           <View className="space-y-3">
             {tasks?.slice(0, 3).map((task, index) => (
               <View key={task.id} className="flex-row items-center">
-                <View className={`w-5 h-5 rounded-full items-center justify-center mr-3 ${
-                  task.status === 'completed' ? 'bg-green-100' : 'bg-gray-200'
-                }`}>
+                <View className={`w-5 h-5 rounded-full items-center justify-center mr-3 ${task.status === 'completed' ? 'bg-green-100' : 'bg-gray-200'
+                  }`}>
                   {task.status === 'completed' ? (
                     <Icon name="checkmark" size={12} color="#10b981" />
                   ) : (
@@ -255,21 +261,21 @@ export default function Overview() {
         <View className="space-y-3 mb-6">
           <Text className="text-lg font-semibold text-gray-900">Actions Rapides</Text>
           <View className="flex-row gap-2">
-            <TouchableOpacity 
+            <TouchableOpacity
               className="flex-1 bg-[#dc2626] p-4 rounded-lg items-center"
               onPress={() => handleOpenTransactionForm('expense')}
             >
               <Icon name={`fa6:${FONTAWESOME_6.CHART_LINE}`} size={20} color="white" />
               <Text className="text-white font-medium mt-1">Dépense</Text>
             </TouchableOpacity>
-            <TouchableOpacity 
+            <TouchableOpacity
               className="flex-1 bg-green-600 p-4 rounded-lg items-center"
               onPress={() => handleOpenTransactionForm('income')}
             >
               <Icon name="add" size={20} color="white" />
               <Text className="text-white font-medium mt-1">Revenu</Text>
             </TouchableOpacity>
-            <TouchableOpacity 
+            <TouchableOpacity
               className="flex-1 bg-blue-600 p-4 rounded-lg items-center"
               onPress={() => setShowTaskForm(true)}
             >
@@ -286,13 +292,12 @@ export default function Overview() {
             {recentTransactions?.slice(0, 3).map((transaction) => (
               <View key={transaction.id} className="flex-row justify-between items-center">
                 <View className="flex-row items-center">
-                  <View className={`w-8 h-8 rounded-full items-center justify-center mr-3 ${
-                    transaction.type === 'income' ? 'bg-green-100' : 'bg-red-100'
-                  }`}>
-                    <Icon 
-                      name={transaction.type === 'income' ? 'arrow-up' : 'arrow-down'} 
-                      size={16} 
-                      color={transaction.type === 'income' ? '#16a34a' : '#dc2626'} 
+                  <View className={`w-8 h-8 rounded-full items-center justify-center mr-3 ${transaction.type === 'income' ? 'bg-green-100' : 'bg-red-100'
+                    }`}>
+                    <Icon
+                      name={transaction.type === 'income' ? 'arrow-up' : 'arrow-down'}
+                      size={16}
+                      color={transaction.type === 'income' ? '#16a34a' : '#dc2626'}
                     />
                   </View>
                   <View>
@@ -302,9 +307,8 @@ export default function Overview() {
                     </Text>
                   </View>
                 </View>
-                <Text className={`font-semibold ${
-                  transaction.type === 'income' ? 'text-green-600' : 'text-red-600'
-                }`}>
+                <Text className={`font-semibold ${transaction.type === 'income' ? 'text-green-600' : 'text-red-600'
+                  }`}>
                   {transaction.type === 'income' ? '+' : '-'}€{transaction.amount.toFixed(2)}
                 </Text>
               </View>

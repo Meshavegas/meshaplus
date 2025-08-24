@@ -6,7 +6,8 @@ import authApi from '../services/authService/authApi'
 import { router } from 'expo-router'
 
 interface AuthState {
-  user: User | null
+  user: User | null,
+  require_preferences: boolean,
   token: string | null
   isAuthenticated: boolean
   isLoading: boolean
@@ -23,6 +24,7 @@ interface AuthActions {
   setError: (error: string | null) => void
   clearError: () => void
   initializeAuth: () => void
+  setRequirePreferences: (require_preferences: boolean) => void
 }
 
 type AuthStore = AuthState & AuthActions
@@ -39,10 +41,14 @@ export const useAuthStore = create<AuthStore>()(
       isAuthenticated: false,
       isLoading: false,
       error: null,
+      require_preferences: false,
+      setRequirePreferences: (require_preferences: boolean) => {
+        set({ require_preferences })
+      },
 
       // Actions
       login: async (email: string, password: string) => {
-        set({  error: null })
+        set({ error: null })
         try {
           const response = await authApi.login(email, password)
 
@@ -50,6 +56,7 @@ export const useAuthStore = create<AuthStore>()(
           if (response && response.data) {
             const user = response.data.user
             const token = response.data.access_token
+            const require_preferences = response.data.require_preferences
 
             if (user && token) {
               set({
@@ -57,7 +64,8 @@ export const useAuthStore = create<AuthStore>()(
                 token,
                 isAuthenticated: true,
                 isLoading: false,
-                error: null
+                error: null,
+                require_preferences: require_preferences
               })
             } else {
               throw new Error('Données de connexion invalides')

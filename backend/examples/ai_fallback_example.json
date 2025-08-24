@@ -1,0 +1,86 @@
+{
+  "ai_service_fallback": {
+    "description": "Solution pour l'erreur d'API Google Generative AI",
+    "problem": {
+      "error": "Failed to generate content: doRequest: error sending request: Post \"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent\": context canceled",
+      "cause": "API Google Generative AI non configurée ou clé API manquante"
+    },
+    "solution": {
+      "approach": "Fallback vers des préférences statiques par défaut",
+      "benefits": [
+        "Pas d'erreur si l'API AI n'est pas disponible",
+        "Préférences cohérentes et testées",
+        "Budgets automatiques toujours créés",
+        "Système fonctionnel immédiatement"
+      ]
+    },
+    "preferences_generated": {
+      "income": {
+        "sources": ["Salaire"],
+        "monthly_total": 150000,
+        "accounts": ["Compte Bancaire", "Mobile Money"],
+        "has_debt": false,
+        "debt_amount": 0
+      },
+      "expenses": {
+        "top_categories": ["Nourriture", "Transport", "Logement"],
+        "food": 60000,
+        "transport": 20000,
+        "housing": 80000,
+        "subscriptions": 15000,
+        "alerts_enabled": true,
+        "auto_budget": true
+      },
+      "goals": {
+        "main_goal": "Épargne",
+        "secondary_goal": "Investissement",
+        "savings_target": 50000,
+        "deadline": "6 mois",
+        "advice_enabled": true
+      },
+      "habits": {
+        "planning_time": "Matin",
+        "daily_focus_time": "30min",
+        "custom_habit": "Vérification quotidienne des dépenses",
+        "summary_type": "Hebdomadaire"
+      }
+    },
+    "budgets_created": [
+      {
+        "category": "Nourriture",
+        "amount_planned": 60000,
+        "auto_generated": true
+      },
+      {
+        "category": "Transport", 
+        "amount_planned": 20000,
+        "auto_generated": true
+      },
+      {
+        "category": "Logement",
+        "amount_planned": 80000,
+        "auto_generated": true
+      },
+      {
+        "category": "Abonnements",
+        "amount_planned": 15000,
+        "auto_generated": true
+      }
+    ]
+  },
+  "future_ai_integration": {
+    "description": "Comment réactiver l'AI plus tard",
+    "steps": [
+      "1. Obtenir une clé API Google Generative AI",
+      "2. Configurer la clé dans config.yaml ou variables d'environnement",
+      "3. Modifier la méthode tryGenerateWithAI() pour retourner true",
+      "4. Tester l'intégration AI"
+    ],
+    "config_example": {
+      "ai": {
+        "model": "gemini-2.5-flash",
+        "api_key": "YOUR_GOOGLE_AI_API_KEY"
+      }
+    }
+  }
+} 

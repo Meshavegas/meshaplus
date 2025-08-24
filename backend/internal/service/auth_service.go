@@ -3,9 +3,11 @@ package service
 import (
 	"backend/internal/domaine/entity"
 	"backend/internal/domaine/repository"
+	"backend/internal/service/ai"
 	"backend/pkg/logger"
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
@@ -16,15 +18,19 @@ type AuthService struct {
 	userRepo              repository.UserRepository
 	jwtService            *JWTService
 	initializationService *InitializationService
+	preferencesRepo       repository.PreferencesRepository
+	preferencesAI         *ai.PreferencesAIService
 	logger                logger.Logger
 }
 
 // NewAuthService crée une nouvelle instance de AuthService
-func NewAuthService(userRepo repository.UserRepository, jwtService *JWTService, initializationService *InitializationService, logger logger.Logger) *AuthService {
+func NewAuthService(userRepo repository.UserRepository, jwtService *JWTService, initializationService *InitializationService, preferencesRepo repository.PreferencesRepository, preferencesAI *ai.PreferencesAIService, logger logger.Logger) *AuthService {
 	return &AuthService{
 		userRepo:              userRepo,
 		jwtService:            jwtService,
 		initializationService: initializationService,
+		preferencesRepo:       preferencesRepo,
+		preferencesAI:         preferencesAI,
 		logger:                logger,
 	}
 }
@@ -37,11 +43,12 @@ type LoginRequest struct {
 
 // LoginResponse représente la réponse de connexion
 type LoginResponse struct {
-	User         *entity.User `json:"user"`
-	AccessToken  string       `json:"access_token"`
-	RefreshToken string       `json:"refresh_token"`
-	TokenType    string       `json:"token_type"`
-	ExpiresIn    int          `json:"expires_in"`
+	User               *entity.User `json:"user"`
+	AccessToken        string       `json:"access_token"`
+	RefreshToken       string       `json:"refresh_token"`
+	TokenType          string       `json:"token_type"`
+	ExpiresIn          int          `json:"expires_in"`
+	RequirePreferences bool         `json:"require_preferences"`
 }
 
 // RegisterRequest représente les données d'inscription
@@ -55,6 +62,12 @@ type RegisterRequest struct {
 // RefreshTokenRequest représente la demande de rafraîchissement de token
 type RefreshTokenRequest struct {
 	RefreshToken string `json:"refresh_token" validate:"required" example:"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."`
+}
+
+// UserProfileResponse représente la réponse du profil utilisateur
+type UserProfileResponse struct {
+	User               *entity.User `json:"user"`
+	RequirePreferences bool         `json:"require_preferences"`
 }
 
 // Login authentifie un utilisateur
@@ -88,17 +101,22 @@ func (a *AuthService) Login(ctx context.Context, req LoginRequest) (*LoginRespon
 		return nil, fmt.Errorf("erreur génération token: %w", err)
 	}
 
+	// Vérifier si l'utilisateur a configuré ses préférences
+	requirePreferences := a.checkUserPreferences(ctx, user.ID)
+
 	a.logger.Info("Connexion réussie",
 		logger.String("user_id", user.ID.String()),
 		logger.String("email", user.Email),
+		logger.Bool("require_preferences", requirePreferences),
 	)
 
 	return &LoginResponse{
-		User:         user,
-		AccessToken:  accessToken,
-		RefreshToken: refreshToken,
-		TokenType:    "Bearer",
-		ExpiresIn:    a.jwtService.config.ExpirationHours * 3600, // en secondes
+		User:               user,
+		AccessToken:        accessToken,
+		RefreshToken:       refreshToken,
+		TokenType:          "Bearer",
+		ExpiresIn:          a.jwtService.config.ExpirationHours * 3600, // en secondes
+		RequirePreferences: requirePreferences,
 	}, nil
 }
 
@@ -151,6 +169,54 @@ func (a *AuthService) Register(ctx context.Context, req RegisterRequest) (*Login
 			logger.String("user_id", user.ID.String()))
 	}
 
+	// Générer des préférences par défaut avec l'AI
+	if a.preferencesAI != nil {
+		if defaultPreferences, err := a.preferencesAI.GenerateDefaultPreferences(ctx, user); err != nil {
+			a.logger.Warn("Échec génération préférences par défaut avec AI",
+				logger.String("user_id", user.ID.String()),
+				logger.Error(err),
+			)
+		} else {
+			// Créer les préférences avec les données générées par l'AI
+			preferences := &entity.UserPreferences{
+				ID:        uuid.New(),
+				UserID:    user.ID,
+				Income:    defaultPreferences.Income,
+				Expenses:  defaultPreferences.Expenses,
+				Goals:     defaultPreferences.Goals,
+				Habits:    defaultPreferences.Habits,
+				CreatedAt: time.Now(),
+				UpdatedAt: time.Now(),
+			}
+
+			if err := a.preferencesRepo.Create(ctx, preferences); err != nil {
+				a.logger.Warn("Échec création préférences par défaut",
+					logger.String("user_id", user.ID.String()),
+					logger.Error(err),
+				)
+			} else {
+				a.logger.Info("Préférences par défaut créées avec succès",
+					logger.String("user_id", user.ID.String()),
+					logger.String("user_name", user.Name),
+				)
+
+				// Générer des budgets basés sur les préférences si auto_budget est activé
+				if preferences.Expenses.AutoBudget {
+					if err := a.initializationService.CreateBudgetsFromPreferences(ctx, user.ID, preferences); err != nil {
+						a.logger.Warn("Échec génération budgets automatiques",
+							logger.String("user_id", user.ID.String()),
+							logger.Error(err),
+						)
+					} else {
+						a.logger.Info("Budgets automatiques créés avec succès",
+							logger.String("user_id", user.ID.String()),
+						)
+					}
+				}
+			}
+		}
+	}
+
 	// Générer les tokens
 	accessToken, err := a.jwtService.GenerateAccessToken(user.ID, user.Email)
 	if err != nil {
@@ -164,17 +230,22 @@ func (a *AuthService) Register(ctx context.Context, req RegisterRequest) (*Login
 		return nil, fmt.Errorf("erreur génération token: %w", err)
 	}
 
+	// Nouvel utilisateur = toujours besoin de configurer les préférences
+	requirePreferences := true
+
 	a.logger.Info("Inscription réussie",
 		logger.String("user_id", user.ID.String()),
 		logger.String("email", user.Email),
+		logger.Bool("require_preferences", requirePreferences),
 	)
 
 	return &LoginResponse{
-		User:         user,
-		AccessToken:  accessToken,
-		RefreshToken: refreshToken,
-		TokenType:    "Bearer",
-		ExpiresIn:    a.jwtService.config.ExpirationHours * 3600, // en secondes
+		User:               user,
+		AccessToken:        accessToken,
+		RefreshToken:       refreshToken,
+		TokenType:          "Bearer",
+		ExpiresIn:          a.jwtService.config.ExpirationHours * 3600, // en secondes
+		RequirePreferences: requirePreferences,
 	}, nil
 }
 
@@ -214,22 +285,27 @@ func (a *AuthService) RefreshToken(ctx context.Context, req RefreshTokenRequest)
 		return nil, fmt.Errorf("erreur génération token: %w", err)
 	}
 
+	// Vérifier si l'utilisateur a configuré ses préférences
+	requirePreferences := a.checkUserPreferences(ctx, user.ID)
+
 	a.logger.Info("Token rafraîchi avec succès",
 		logger.String("user_id", user.ID.String()),
 		logger.String("email", user.Email),
+		logger.Bool("require_preferences", requirePreferences),
 	)
 
 	return &LoginResponse{
-		User:         user,
-		AccessToken:  accessToken,
-		RefreshToken: refreshToken,
-		TokenType:    "Bearer",
-		ExpiresIn:    a.jwtService.config.ExpirationHours * 3600, // en secondes
+		User:               user,
+		AccessToken:        accessToken,
+		RefreshToken:       refreshToken,
+		TokenType:          "Bearer",
+		ExpiresIn:          a.jwtService.config.ExpirationHours * 3600, // en secondes
+		RequirePreferences: requirePreferences,
 	}, nil
 }
 
 // GetCurrentUser récupère l'utilisateur actuel à partir du contexte
-func (a *AuthService) GetCurrentUser(ctx context.Context) (*entity.User, error) {
+func (a *AuthService) GetCurrentUser(ctx context.Context) (*UserProfileResponse, error) {
 	userID, ok := ctx.Value("user_id").(uuid.UUID)
 	if !ok {
 		return nil, fmt.Errorf("utilisateur non authentifié")
@@ -240,5 +316,21 @@ func (a *AuthService) GetCurrentUser(ctx context.Context) (*entity.User, error) 
 		return nil, fmt.Errorf("utilisateur non trouvé: %w", err)
 	}
 
-	return user, nil
+	// Vérifier si l'utilisateur a configuré ses préférences
+	requirePreferences := a.checkUserPreferences(ctx, user.ID)
+
+	return &UserProfileResponse{
+		User:               user,
+		RequirePreferences: requirePreferences,
+	}, nil
+}
+
+// checkUserPreferences vérifie si un utilisateur a configuré ses préférences
+func (a *AuthService) checkUserPreferences(ctx context.Context, userID uuid.UUID) bool {
+	preferences, err := a.preferencesRepo.GetByUserID(ctx, userID)
+	if err != nil {
+		a.logger.Error("Erreur vérification préférences", logger.Error(err))
+		return true // En cas d'erreur, on assume qu'il faut configurer
+	}
+	return preferences == nil // true si pas de préférences
 }

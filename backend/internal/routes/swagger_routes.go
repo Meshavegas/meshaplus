@@ -8,6 +8,9 @@ import (
 // SetupSwaggerRoutes configure les routes pour la documentation Swagger
 func SetupSwaggerRoutes(r chi.Router) {
 	r.Get("/swagger/*", httpSwagger.Handler(
-		httpSwagger.URL("http://localhost:8080/swagger/doc.json"),
+		httpSwagger.URL("/swagger/doc.json"),
+		httpSwagger.DeepLinking(true),
+		httpSwagger.DocExpansion("none"),
+		httpSwagger.DomID("swagger-ui"),
 	))
 }

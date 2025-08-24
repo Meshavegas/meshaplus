@@ -78,6 +78,13 @@ type CategoryRepository interface {
 	GetAll(ctx context.Context, userID uuid.UUID) ([]*entity.Category, error)
 }
 
+type PreferencesRepository interface {
+	Create(ctx context.Context, preferences *entity.UserPreferences) error
+	GetByUserID(ctx context.Context, userID uuid.UUID) (*entity.UserPreferences, error)
+	Update(ctx context.Context, preferences *entity.UserPreferences) error
+	Delete(ctx context.Context, userID uuid.UUID) error
+}
+
 // BUDGET
 type BudgetRepository interface {
 	Create(ctx context.Context, budget *entity.Budget) error

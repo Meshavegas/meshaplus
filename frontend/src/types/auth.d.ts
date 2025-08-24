@@ -13,6 +13,7 @@ interface LoginResponse {
     refresh_token: string;
     token_type: string;
     expires_in: number;
+    require_preferences: boolean;
   };
   timestamp: string;
 }

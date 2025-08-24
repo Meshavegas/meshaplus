@@ -23,7 +23,7 @@ export default function Login() {
   const [emailError, setEmailError] = useState('')
   const [passwordError, setPasswordError] = useState('')
 
-  const { login, isLoading, error, clearError } = useAuthStore()
+  const { login, isLoading, error, clearError, user, require_preferences } = useAuthStore()
 
   // Clear error when component mounts
   useEffect(() => {
@@ -68,10 +68,10 @@ export default function Login() {
   const validateForm = () => {
     const emailValidation = validateEmail(email)
     const passwordValidation = validatePassword(password)
-    
+
     setEmailError(emailValidation)
     setPasswordError(passwordValidation)
-    
+
     return !emailValidation && !passwordValidation
   }
 
@@ -82,7 +82,11 @@ export default function Login() {
 
     try {
       await login(email, password)
-      router.replace('/dashboard/tabs/overview')
+      if (require_preferences) {
+        router.replace('/dashboard/wizard')
+      } else {
+        router.replace('/dashboard/tabs/overview')
+      }
       // Navigation will be handled by the auth state change
     } catch (error) {
       // Error is handled by the store
@@ -102,11 +106,11 @@ export default function Login() {
   }
 
   return (
-    <KeyboardAvoidingView 
-      style={{ flex: 1 }} 
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <ScrollView 
+      <ScrollView
         contentContainerStyle={{ flexGrow: 1 }}
         keyboardShouldPersistTaps="handled"
       >
@@ -114,26 +118,26 @@ export default function Login() {
           {/* Header */}
           <View className="flex-1 justify-center">
             <View className="items-center mb-8">
-              <View 
+              <View
                 className="w-20 h-20 rounded-full items-center justify-center mb-4"
-                style={{ 
+                style={{
                   backgroundColor: colors.primary[100],
-                  ...shadows.md 
+                  ...shadows.md
                 }}
               >
-                <Ionicons 
-                  name="wallet-outline" 
-                  size={40} 
-                  color={colors.primary[500]} 
+                <Ionicons
+                  name="wallet-outline"
+                  size={40}
+                  color={colors.primary[500]}
                 />
               </View>
-              <Text 
+              <Text
                 className="text-3xl font-bold mb-2"
                 style={{ color: colors.text.primary }}
               >
                 MeshaPlus
               </Text>
-              <Text 
+              <Text
                 className="text-base text-center"
                 style={{ color: colors.text.secondary }}
               >
@@ -145,22 +149,21 @@ export default function Login() {
             <View className="space-y-4">
               {/* Email Input */}
               <View>
-                <Text 
+                <Text
                   className="text-sm font-medium mb-2"
                   style={{ color: colors.text.primary }}
                 >
                   Email
                 </Text>
-                <View 
-                  className={`flex-row items-center border rounded-lg px-4 py-3 ${
-                    emailError ? 'border-red-500' : 'border-gray-300'
-                  }`}
+                <View
+                  className={`flex-row items-center border rounded-lg px-4 py-3 ${emailError ? 'border-red-500' : 'border-gray-300'
+                    }`}
                   style={{ backgroundColor: colors.background.secondary }}
                 >
-                  <Ionicons 
-                    name="mail-outline" 
-                    size={20} 
-                    color={colors.text.tertiary} 
+                  <Ionicons
+                    name="mail-outline"
+                    size={20}
+                    color={colors.text.tertiary}
                     style={{ marginRight: spacing.sm }}
                   />
                   <TextInput
@@ -176,7 +179,7 @@ export default function Login() {
                   />
                 </View>
                 {emailError ? (
-                  <Text 
+                  <Text
                     className="text-sm mt-1"
                     style={{ color: colors.error[500] }}
                   >
@@ -187,22 +190,21 @@ export default function Login() {
 
               {/* Password Input */}
               <View>
-                <Text 
+                <Text
                   className="text-sm font-medium mb-2"
                   style={{ color: colors.text.primary }}
                 >
                   Mot de passe
                 </Text>
-                <View 
-                  className={`flex-row items-center border rounded-lg px-4 py-3 ${
-                    passwordError ? 'border-red-500' : 'border-gray-300'
-                  }`}
+                <View
+                  className={`flex-row items-center border rounded-lg px-4 py-3 ${passwordError ? 'border-red-500' : 'border-gray-300'
+                    }`}
                   style={{ backgroundColor: colors.background.secondary }}
                 >
-                  <Ionicons 
-                    name="lock-closed-outline" 
-                    size={20} 
-                    color={colors.text.tertiary} 
+                  <Ionicons
+                    name="lock-closed-outline"
+                    size={20}
+                    color={colors.text.tertiary}
                     style={{ marginRight: spacing.sm }}
                   />
                   <TextInput
@@ -220,15 +222,15 @@ export default function Login() {
                     onPress={() => setShowPassword(!showPassword)}
                     hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                   >
-                    <Ionicons 
-                      name={showPassword ? "eye-off-outline" : "eye-outline"} 
-                      size={20} 
-                      color={colors.text.tertiary} 
+                    <Ionicons
+                      name={showPassword ? "eye-off-outline" : "eye-outline"}
+                      size={20}
+                      color={colors.text.tertiary}
                     />
                   </TouchableOpacity>
                 </View>
                 {passwordError ? (
-                  <Text 
+                  <Text
                     className="text-sm mt-1"
                     style={{ color: colors.error[500] }}
                   >
@@ -242,7 +244,7 @@ export default function Login() {
                 onPress={handleForgotPassword}
                 className="self-end"
               >
-                <Text 
+                <Text
                   className="text-sm"
                   style={{ color: colors.primary[500] }}
                 >
@@ -252,11 +254,11 @@ export default function Login() {
 
               {/* Error Message */}
               {error ? (
-                <View 
+                <View
                   className="p-3 rounded-lg"
                   style={{ backgroundColor: colors.error[50] }}
                 >
-                  <Text 
+                  <Text
                     className="text-sm text-center"
                     style={{ color: colors.error[600] }}
                   >
@@ -278,17 +280,17 @@ export default function Login() {
 
               {/* Divider */}
               <View className="flex-row items-center my-6">
-                <View 
+                <View
                   className="flex-1 h-px"
                   style={{ backgroundColor: colors.neutral[200] }}
                 />
-                <Text 
+                <Text
                   className="mx-4 text-sm"
                   style={{ color: colors.text.tertiary }}
                 >
                   ou
                 </Text>
-                <View 
+                <View
                   className="flex-1 h-px"
                   style={{ backgroundColor: colors.neutral[200] }}
                 />
@@ -296,14 +298,14 @@ export default function Login() {
 
               {/* Register Link */}
               <View className="items-center">
-                <Text 
+                <Text
                   className="text-sm"
                   style={{ color: colors.text.secondary }}
                 >
                   Pas encore de compte ?{' '}
                 </Text>
                 <TouchableOpacity onPress={handleRegister}>
-                  <Text 
+                  <Text
                     className="text-sm font-medium"
                     style={{ color: colors.primary[500] }}
                   >
@@ -316,7 +318,7 @@ export default function Login() {
 
           {/* Footer */}
           <View className="py-6">
-            <Text 
+            <Text
               className="text-xs text-center"
               style={{ color: colors.text.tertiary }}
             >

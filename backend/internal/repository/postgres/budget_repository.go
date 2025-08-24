@@ -45,7 +45,7 @@ func (r *BudgetRepository) GetByID(ctx context.Context, id uuid.UUID) (*entity.B
 // GetByUserID récupère tous les budgets d'un utilisateur
 func (r *BudgetRepository) GetByUserID(ctx context.Context, userID uuid.UUID) ([]*entity.Budget, error) {
 	var budgets []*entity.Budget
-	err := r.db.WithContext(ctx).Model(&budgets).Where("user_id = ?", userID).Order("year DESC, month DESC").Select()
+	err := r.db.WithContext(ctx).Model(&budgets).Where("user_id = ?", userID).Order("year DESC").Order("month DESC").Select()
 	if err != nil {
 		return nil, fmt.Errorf("erreur récupération budgets utilisateur: %w", err)
 	}
@@ -73,7 +73,7 @@ func (r *BudgetRepository) Delete(ctx context.Context, id uuid.UUID) error {
 // GetByCategoryID récupère les budgets d'une catégorie
 func (r *BudgetRepository) GetByCategoryID(ctx context.Context, userID uuid.UUID, categoryID uuid.UUID) ([]*entity.Budget, error) {
 	var budgets []*entity.Budget
-	err := r.db.WithContext(ctx).Model(&budgets).Where("user_id = ? AND category_id = ?", userID, categoryID).Order("year DESC, month DESC").Select()
+	err := r.db.WithContext(ctx).Model(&budgets).Where("user_id = ? AND category_id = ?", userID, categoryID).Order("year DESC").Order("month DESC").Select()
 	if err != nil {
 		return nil, fmt.Errorf("erreur récupération budgets par catégorie: %w", err)
 	}

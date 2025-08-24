@@ -27,6 +27,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	chimiddleware "github.com/go-chi/chi/v5/middleware"
 
+	"backend/docs"
 	"backend/internal/handler"
 	"backend/internal/infra/database"
 	"backend/internal/repository/postgres"
@@ -41,6 +42,14 @@ import (
 )
 
 func main() {
+	// Initialiser la documentation Swagger
+	docs.SwaggerInfo.Title = "MeshaPlus API"
+	docs.SwaggerInfo.Description = "API REST pour la gestion financière et des tâches"
+	docs.SwaggerInfo.Version = "1.0"
+	docs.SwaggerInfo.Host = "localhost:8080"
+	docs.SwaggerInfo.BasePath = "/api/v1"
+	docs.SwaggerInfo.Schemes = []string{"http", "https"}
+
 	// Charger la configuration
 	cfg, err := config.Load()
 	if err != nil {
@@ -84,13 +93,22 @@ func main() {
 	budgetRepo := postgres.NewBudgetRepository(db)
 	savingGoalRepo := postgres.NewSavingGoalRepository(db)
 	categoryRepo := postgres.NewCategoryRepository(db, loggerInstance)
+	preferencesRepo := postgres.NewPreferencesRepository(db)
 	// fileRepo := postgres.NewFileRepository(db) // TODO: implement file repository
 	// externalService := service.NewExternalService(cfg.ExternalAPI.BaseURL) // TODO: implement external service
 
 	// Services
 	jwtService := service.NewJWTService(cfg.JWT, loggerInstance)
-	initializationService := service.NewInitializationService(categoryRepo, accountRepo, loggerInstance)
-	authService := service.NewAuthService(userRepo, jwtService, initializationService, loggerInstance)
+	initializationService := service.NewInitializationService(categoryRepo, accountRepo, budgetRepo, loggerInstance)
+
+	// Service AI pour les préférences
+	preferencesAIService, err := ai.NewPreferencesAIService("", loggerInstance)
+	if err != nil {
+		loggerInstance.Warn("Service AI des préférences non disponible", logger.Error(err))
+		preferencesAIService = nil
+	}
+
+	authService := service.NewAuthService(userRepo, jwtService, initializationService, preferencesRepo, preferencesAIService, loggerInstance)
 	taskService := service.NewTaskService(taskRepo, loggerInstance)
 	aiService := ai.NewAIService(cfg.AI, loggerInstance)
 	transactionService := service.NewTransactionService(transactionRepo, accountRepo, categoryRepo, aiService, loggerInstance)
@@ -98,6 +116,7 @@ func main() {
 	budgetService := service.NewBudgetService(budgetRepo, loggerInstance)
 	savingGoalService := service.NewSavingGoalService(savingGoalRepo, loggerInstance)
 	categoryService := service.NewCategoryService(categoryRepo, aiService, loggerInstance)
+	preferencesService := service.NewPreferencesService(preferencesRepo, aiService, loggerInstance)
 
 	// Usecases
 	userUsecase := usecase.NewUserUsecase(userRepo, loggerInstance)
@@ -114,6 +133,7 @@ func main() {
 	budgetHandler := handler.NewBudgetHandler(budgetService, loggerInstance)
 	savingGoalHandler := handler.NewSavingGoalHandler(savingGoalService, loggerInstance)
 	categoryHandler := handler.NewCategoryHandler(categoryService, loggerInstance)
+	preferencesHandler := handler.NewPreferencesHandler(preferencesService, loggerInstance)
 	// userHandler := handler.NewUserHandler(userUsecase, loggerInstance)
 	// fileHandler := handler.NewFileHandler(fileUsecase, loggerInstance) // TODO: implement file handler
 	// healthHandler := handler.NewHealthHandler(db, redisClient) // TODO: implement health handler
@@ -130,7 +150,7 @@ func main() {
 
 	// Configuration des routes
 	// TODO: Implement routes setup
-	routes.SetupRoutes(r, userUsecase, authService, authMiddleware, taskHandler, transactionHandler, accountHandler, budgetHandler, savingGoalHandler, categoryHandler, loggerInstance)
+	routes.SetupRoutes(r, userUsecase, authService, authMiddleware, taskHandler, transactionHandler, accountHandler, budgetHandler, savingGoalHandler, categoryHandler, preferencesHandler, loggerInstance)
 
 	// Configuration du serveur
 	server := &http.Server{

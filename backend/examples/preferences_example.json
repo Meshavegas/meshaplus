@@ -1,0 +1,31 @@
+{
+  "income": {
+    "sources": ["Salaire", "Freelance"],
+    "monthly_total": 250000,
+    "accounts": ["Banque", "Mobile Money"],
+    "has_debt": true,
+    "debt_amount": 50000
+  },
+  "expenses": {
+    "top_categories": ["Nourriture", "Transport", "Logement"],
+    "food": 60000,
+    "transport": 20000,
+    "housing": 80000,
+    "subscriptions": 15000,
+    "alerts_enabled": true,
+    "auto_budget": true
+  },
+  "goals": {
+    "main_goal": "Voyage",
+    "secondary_goal": "Épargne santé",
+    "savings_target": 50000,
+    "deadline": "6 mois",
+    "advice_enabled": true
+  },
+  "habits": {
+    "planning_time": "Matin",
+    "daily_focus_time": "30min",
+    "custom_habit": "Sport 3x par semaine",
+    "summary_type": "Hebdomadaire"
+  }
+} 

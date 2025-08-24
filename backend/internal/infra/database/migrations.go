@@ -121,6 +121,11 @@ func RunMigrations(db *pg.DB, loggerInstance logger.Logger) error {
 		return fmt.Errorf("erreur création table weekly_summaries: %w", err)
 	}
 
+	// Migration 22: Table preferences
+	if err := createPreferencesTable(db, loggerInstance); err != nil {
+		return fmt.Errorf("erreur création table preferences: %w", err)
+	}
+
 	loggerInstance.Info("Toutes les migrations ont été exécutées avec succès")
 	return nil
 }
@@ -1117,5 +1122,33 @@ func createSavingGoalsTable(db *pg.DB, loggerInstance logger.Logger) error {
 	}
 
 	loggerInstance.Info("Table saving_goals créée")
+	return nil
+}
+
+// createPreferencesTable crée la table preferences
+func createPreferencesTable(db *pg.DB, loggerInstance logger.Logger) error {
+	query := `
+	CREATE TABLE IF NOT EXISTS preferences (
+		id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+		user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+		income JSONB NOT NULL DEFAULT '{}',
+		expenses JSONB NOT NULL DEFAULT '{}',
+		goals JSONB NOT NULL DEFAULT '{}',
+		habits JSONB NOT NULL DEFAULT '{}',
+		created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+		updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+		UNIQUE(user_id)
+	);
+	
+	CREATE INDEX IF NOT EXISTS idx_preferences_user_id ON preferences(user_id);
+	`
+
+	_, err := db.Exec(query)
+	if err != nil {
+		loggerInstance.Error("Erreur création table preferences", logger.Error(err))
+		return err
+	}
+
+	loggerInstance.Info("Table preferences créée")
 	return nil
 }

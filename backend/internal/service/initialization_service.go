@@ -5,6 +5,8 @@ import (
 	"backend/internal/domaine/repository"
 	"backend/pkg/logger"
 	"context"
+	"fmt"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -13,14 +15,16 @@ import (
 type InitializationService struct {
 	categoryRepo repository.CategoryRepository
 	accountRepo  repository.AccountRepository
+	budgetRepo   repository.BudgetRepository
 	logger       logger.Logger
 }
 
 // NewInitializationService crée une nouvelle instance de InitializationService
-func NewInitializationService(categoryRepo repository.CategoryRepository, accountRepo repository.AccountRepository, logger logger.Logger) *InitializationService {
+func NewInitializationService(categoryRepo repository.CategoryRepository, accountRepo repository.AccountRepository, budgetRepo repository.BudgetRepository, logger logger.Logger) *InitializationService {
 	return &InitializationService{
 		categoryRepo: categoryRepo,
 		accountRepo:  accountRepo,
+		budgetRepo:   budgetRepo,
 		logger:       logger,
 	}
 }
@@ -42,6 +46,78 @@ func (s *InitializationService) InitializeUserData(ctx context.Context, userID u
 	}
 
 	s.logger.Info("Initialisation terminée avec succès", logger.String("user_id", userID.String()))
+	return nil
+}
+
+// CreateBudgetsFromPreferences crée des budgets basés sur les préférences utilisateur
+func (s *InitializationService) CreateBudgetsFromPreferences(ctx context.Context, userID uuid.UUID, preferences *entity.UserPreferences) error {
+	s.logger.Info("Création budgets automatiques basés sur les préférences", logger.String("user_id", userID.String()))
+
+	// Récupérer les catégories de l'utilisateur pour mapper les budgets
+	categories, err := s.categoryRepo.GetByUserID(ctx, userID)
+	if err != nil {
+		return fmt.Errorf("erreur récupération catégories: %w", err)
+	}
+
+	// Créer une map pour rapidement trouver les catégories par nom
+	categoryMap := make(map[string]*entity.Category)
+	for _, cat := range categories {
+		categoryMap[cat.Name] = cat
+	}
+
+	// Obtenir le mois et l'année actuels
+	now := time.Now()
+	currentMonth := int(now.Month())
+	currentYear := now.Year()
+
+	// Créer des budgets basés sur les préférences
+	budgetsToCreate := []struct {
+		categoryName string
+		amount       float64
+	}{
+		{"Nourriture", preferences.Expenses.Food},
+		{"Transport", preferences.Expenses.Transport},
+		{"Logement", preferences.Expenses.Housing},
+		{"Abonnements", preferences.Expenses.Subscriptions},
+	}
+
+	for _, budgetData := range budgetsToCreate {
+		if budgetData.amount > 0 {
+			category, exists := categoryMap[budgetData.categoryName]
+			if !exists {
+				s.logger.Warn("Catégorie non trouvée pour le budget",
+					logger.String("category", budgetData.categoryName),
+					logger.String("user_id", userID.String()))
+				continue
+			}
+
+			budget := &entity.Budget{
+				ID:            uuid.New(),
+				UserID:        userID,
+				CategoryID:    category.ID,
+				AmountPlanned: budgetData.amount,
+				AmountSpent:   0, // Nouveau budget, pas encore de dépenses
+				Month:         currentMonth,
+				Year:          currentYear,
+				CreatedAt:     now,
+				UpdatedAt:     now,
+			}
+
+			if err := s.budgetRepo.Create(ctx, budget); err != nil {
+				s.logger.Error("Erreur création budget automatique",
+					logger.Error(err),
+					logger.String("category", budgetData.categoryName),
+					logger.Float64("amount", budgetData.amount))
+				continue
+			}
+
+			s.logger.Info("Budget automatique créé",
+				logger.String("category", budgetData.categoryName),
+				logger.Float64("amount", budgetData.amount),
+				logger.String("user_id", userID.String()))
+		}
+	}
+
 	return nil
 }
 
