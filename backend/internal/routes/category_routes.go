@@ -18,5 +18,6 @@ func SetupCategoryRoutes(r chi.Router, categoryHandler *handler.CategoryHandler,
 		r.Post("/categorize", categoryHandler.CategorizeItem) // POST /api/v1/categories/categorize
 		r.Post("/", categoryHandler.CreateCategory)           // POST /api/v1/categories
 		r.Get("/", categoryHandler.GetCategoriesByType)       // GET /api/v1/categories?categoryType=expense
+		r.Get("/{id}", categoryHandler.GetCategoryByID)       // GET /api/v1/categories/{id}
 	})
 }

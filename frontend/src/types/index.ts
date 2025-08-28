@@ -93,20 +93,6 @@ export interface ApiResponse<T> {
   success: boolean
 }
 
-// Types pour les transactions
-export interface Transaction {
-  id: string
-  userId: string
-  accountId: string
-  categoryId: string
-  type: 'income' | 'expense'
-  amount: number
-  description: string
-  date: Date
-  recurring: boolean
-  createdAt: Date
-  updatedAt: Date
-}
 
 export interface CreateTransactionRequest {
   account_id: string
@@ -118,32 +104,6 @@ export interface CreateTransactionRequest {
   recurring?: boolean
 }
 
-// Types pour les catégories
-export interface Category {
-  id: string
-  userId: string
-  name: string
-  type: 'income' | 'expense' | 'task'
-  icon: string
-  color: string
-  parentId?: string
-  createdAt: Date
-  updatedAt: Date
-}
-
-// Types pour les comptes
-export interface Account {
-  id: string
-  userId: string
-  name: string
-  type: 'checking' | 'savings' | 'mobile_money'
-  balance: number
-  icon: string
-  color: string
-  currency: string
-  createdAt: Date
-  updatedAt: Date
-}
 
 // Types pour les statistiques
 export interface TaskStats {

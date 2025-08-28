@@ -9,6 +9,7 @@ import (
 	"backend/pkg/logger"
 	"backend/pkg/response"
 
+	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 )
 
@@ -180,6 +181,44 @@ func (h *CategoryHandler) CreateCategory(w http.ResponseWriter, r *http.Request)
 	}
 
 	response.Success(w, http.StatusCreated, "Catégorie créée avec succès", category)
+}
+
+// GetCategoryByID récupère une catégorie par son ID
+
+// @Summary Récupère une catégorie par son ID
+// @Description Récupère une catégorie par son ID
+// @Tags categories
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param id path string true "ID de la catégorie"
+// @Success 200 {object} response.Response "Catégorie récupérée"
+// @Failure 400 {object} response.ErrorResponse "Données invalides"
+// @Failure 401 {object} response.ErrorResponse "Non authentifié"
+// @Failure 500 {object} response.ErrorResponse "Erreur serveur"
+// @Router /categories/{id} [get]
+func (h *CategoryHandler) GetCategoryByID(w http.ResponseWriter, r *http.Request) {
+	userID, ok := r.Context().Value("user_id").(uuid.UUID)
+	if !ok {
+		response.Error(w, http.StatusUnauthorized, "Utilisateur non authentifié", nil)
+		return
+	}
+
+	categoryIDStr := chi.URLParam(r, "id")
+	categoryID, err := uuid.Parse(categoryIDStr)
+	if err != nil {
+		response.Error(w, http.StatusBadRequest, "ID de catégorie invalide", err)
+		return
+	}
+
+	category, err := h.categoryService.GetCategoryByID(r.Context(), userID, categoryID)
+	if err != nil {
+		h.logger.Error("Erreur récupération catégorie", logger.Error(err))
+		response.Error(w, http.StatusInternalServerError, "Erreur lors de la récupération de la catégorie", err)
+		return
+	}
+
+	response.Success(w, http.StatusOK, "Catégorie récupérée avec succès", category)
 }
 
 // CategorizeRequest représente la requête pour catégoriser un item

@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"time"
 
 	"backend/internal/domaine/entity"
 
@@ -60,16 +61,23 @@ type TransactionRepository interface {
 	GetByUserID(ctx context.Context, userID uuid.UUID) ([]*entity.Transaction, error)
 	Update(ctx context.Context, transaction *entity.Transaction) error
 	Delete(ctx context.Context, id uuid.UUID) error
-	GetByCategoryID(ctx context.Context, userID uuid.UUID, categoryID uuid.UUID) ([]*entity.Transaction, error)
+	GetByCategoryID(ctx context.Context, userID uuid.UUID, categoryID *uuid.UUID) ([]*entity.Transaction, error)
+	GetByAccountID(ctx context.Context, userID uuid.UUID, accountID *uuid.UUID) ([]*entity.Transaction, error)
+	GetByAccountIDWithCategoryDetails(ctx context.Context, userID uuid.UUID, accountID *uuid.UUID) ([]*entity.TransactionWithDetails, error)
+	GetBySavingGoalID(ctx context.Context, userID uuid.UUID, savingGoalID uuid.UUID) ([]*entity.Transaction, error)
+	GetTransfers(ctx context.Context, userID uuid.UUID) ([]*entity.Transaction, error)
 	GetByDateRange(ctx context.Context, userID uuid.UUID, startDate, endDate string) ([]*entity.Transaction, error)
 	GetByType(ctx context.Context, userID uuid.UUID, txType string) ([]*entity.Transaction, error)
 	GetTotalByUserID(ctx context.Context, userID uuid.UUID) (float64, error)
+	GetAllTransactionsByUserIDAndAccountID(ctx context.Context, userID uuid.UUID, accountID uuid.UUID) ([]*entity.Transaction, error)
+	//get All transaction by saving goal id
+	GetAllTransactionsBySavingGoalID(ctx context.Context, userID uuid.UUID, savingGoalID uuid.UUID) ([]*entity.Transaction, error)
 }
 
 // CATEGORY
 type CategoryRepository interface {
 	Create(ctx context.Context, category *entity.Category) error
-	GetByID(ctx context.Context, id uuid.UUID) (*entity.Category, error)
+	GetByID(ctx context.Context, userID uuid.UUID, id uuid.UUID) (*entity.Category, error)
 	GetByUserID(ctx context.Context, userID uuid.UUID) ([]*entity.Category, error)
 	Update(ctx context.Context, category *entity.Category) error
 	Delete(ctx context.Context, id uuid.UUID) error
@@ -93,7 +101,8 @@ type BudgetRepository interface {
 	Update(ctx context.Context, budget *entity.Budget) error
 	Delete(ctx context.Context, id uuid.UUID) error
 	GetByCategoryID(ctx context.Context, userID uuid.UUID, categoryID uuid.UUID) ([]*entity.Budget, error)
-	GetByMonth(ctx context.Context, userID uuid.UUID, month, year int) ([]*entity.Budget, error)
+	GetByPeriod(ctx context.Context, userID uuid.UUID, period string) ([]*entity.Budget, error)
+	GetByName(ctx context.Context, userID uuid.UUID, name string) ([]*entity.Budget, error)
 }
 
 // SAVING GOAL
@@ -105,6 +114,9 @@ type SavingGoalRepository interface {
 	Delete(ctx context.Context, id uuid.UUID) error
 	GetAchievedByUserID(ctx context.Context, userID uuid.UUID) ([]*entity.SavingGoal, error)
 	GetActiveByUserID(ctx context.Context, userID uuid.UUID) ([]*entity.SavingGoal, error)
+	GetByAccountID(ctx context.Context, userID uuid.UUID, accountID uuid.UUID) ([]*entity.SavingGoal, error)
+	GetByFrequency(ctx context.Context, userID uuid.UUID, frequency string) ([]*entity.SavingGoal, error)
+	GetAllSavingGoalsByUserIDAndAccountID(ctx context.Context, userID uuid.UUID, accountID uuid.UUID) ([]*entity.SavingGoal, error)
 }
 
 // REMINDER
@@ -114,7 +126,11 @@ type ReminderRepository interface {
 	GetByUserID(ctx context.Context, userID uuid.UUID) ([]*entity.Reminder, error)
 	Update(ctx context.Context, reminder *entity.Reminder) error
 	Delete(ctx context.Context, id uuid.UUID) error
-	GetUpcomingByUserID(ctx context.Context, userID uuid.UUID) ([]*entity.Reminder, error)
+	GetByTaskID(ctx context.Context, userID uuid.UUID, taskID uuid.UUID) ([]*entity.Reminder, error)
+	GetByTransactionID(ctx context.Context, userID uuid.UUID, transacID uuid.UUID) ([]*entity.Reminder, error)
+	GetPending(ctx context.Context, userID uuid.UUID) ([]*entity.Reminder, error)
+	GetDue(ctx context.Context, now time.Time) ([]*entity.Reminder, error)
+	MarkAsSent(ctx context.Context, id uuid.UUID) error
 }
 
 // NOTIFICATION
@@ -124,8 +140,11 @@ type NotificationRepository interface {
 	GetByUserID(ctx context.Context, userID uuid.UUID) ([]*entity.Notification, error)
 	Update(ctx context.Context, notification *entity.Notification) error
 	Delete(ctx context.Context, id uuid.UUID) error
+	GetUnread(ctx context.Context, userID uuid.UUID) ([]*entity.Notification, error)
+	GetRead(ctx context.Context, userID uuid.UUID) ([]*entity.Notification, error)
 	MarkAsRead(ctx context.Context, id uuid.UUID) error
-	GetUnreadByUserID(ctx context.Context, userID uuid.UUID) ([]*entity.Notification, error)
+	MarkAllAsRead(ctx context.Context, userID uuid.UUID) error
+	CountUnread(ctx context.Context, userID uuid.UUID) (int, error)
 }
 
 // MOOD
@@ -135,8 +154,9 @@ type MoodRepository interface {
 	GetByUserID(ctx context.Context, userID uuid.UUID) ([]*entity.Mood, error)
 	Update(ctx context.Context, mood *entity.Mood) error
 	Delete(ctx context.Context, id uuid.UUID) error
-	GetByDateRange(ctx context.Context, userID uuid.UUID, startDate, endDate string) ([]*entity.Mood, error)
-	GetAverageByUserID(ctx context.Context, userID uuid.UUID) (float64, error)
+	GetByDate(ctx context.Context, userID uuid.UUID, date time.Time) (*entity.Mood, error)
+	GetByDateRange(ctx context.Context, userID uuid.UUID, startDate, endDate time.Time) ([]*entity.Mood, error)
+	GetByFeeling(ctx context.Context, userID uuid.UUID, feeling string) ([]*entity.Mood, error)
 }
 
 // MOTIVATION
@@ -146,7 +166,10 @@ type MotivationRepository interface {
 	GetByUserID(ctx context.Context, userID uuid.UUID) ([]*entity.Motivation, error)
 	Update(ctx context.Context, motivation *entity.Motivation) error
 	Delete(ctx context.Context, id uuid.UUID) error
+	GetByType(ctx context.Context, userID uuid.UUID, motivationType string) ([]*entity.Motivation, error)
+	GetRandom(ctx context.Context, userID uuid.UUID) (*entity.Motivation, error)
 	GetRandomByType(ctx context.Context, userID uuid.UUID, motivationType string) (*entity.Motivation, error)
+	Search(ctx context.Context, userID uuid.UUID, query string) ([]*entity.Motivation, error)
 }
 
 // LIFE NOTE
@@ -156,7 +179,11 @@ type LifeNoteRepository interface {
 	GetByUserID(ctx context.Context, userID uuid.UUID) ([]*entity.LifeNote, error)
 	Update(ctx context.Context, note *entity.LifeNote) error
 	Delete(ctx context.Context, id uuid.UUID) error
-	GetByGoalID(ctx context.Context, goalID uuid.UUID) ([]*entity.LifeNote, error)
+	GetByGoalID(ctx context.Context, userID uuid.UUID, goalID uuid.UUID) ([]*entity.LifeNote, error)
+	GetRecent(ctx context.Context, userID uuid.UUID, limit int) ([]*entity.LifeNote, error)
+	SearchByTitle(ctx context.Context, userID uuid.UUID, query string) ([]*entity.LifeNote, error)
+	SearchByContent(ctx context.Context, userID uuid.UUID, query string) ([]*entity.LifeNote, error)
+	Search(ctx context.Context, userID uuid.UUID, query string) ([]*entity.LifeNote, error)
 }
 
 // WEEKLY SUMMARY
@@ -166,5 +193,8 @@ type WeeklySummaryRepository interface {
 	GetByUserID(ctx context.Context, userID uuid.UUID) ([]*entity.WeeklySummary, error)
 	Update(ctx context.Context, summary *entity.WeeklySummary) error
 	Delete(ctx context.Context, id uuid.UUID) error
-	GetLatestByUserID(ctx context.Context, userID uuid.UUID) (*entity.WeeklySummary, error)
+	GetByWeek(ctx context.Context, userID uuid.UUID, weekStartDate time.Time) (*entity.WeeklySummary, error)
+	GetByDateRange(ctx context.Context, userID uuid.UUID, startDate, endDate time.Time) ([]*entity.WeeklySummary, error)
+	GetLatest(ctx context.Context, userID uuid.UUID) (*entity.WeeklySummary, error)
+	Upsert(ctx context.Context, summary *entity.WeeklySummary) error
 }

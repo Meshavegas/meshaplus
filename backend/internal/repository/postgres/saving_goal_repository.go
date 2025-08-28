@@ -89,3 +89,33 @@ func (r *SavingGoalRepository) GetActiveByUserID(ctx context.Context, userID uui
 	}
 	return goals, nil
 }
+
+// GetByAccountID récupère les objectifs d'épargne d'un compte
+func (r *SavingGoalRepository) GetByAccountID(ctx context.Context, userID uuid.UUID, accountID uuid.UUID) ([]*entity.SavingGoal, error) {
+	var goals []*entity.SavingGoal
+	err := r.db.WithContext(ctx).Model(&goals).Where("user_id = ? AND account_id = ?", userID, accountID).Order("created_at DESC").Select()
+	if err != nil {
+		return nil, fmt.Errorf("erreur récupération objectifs d'épargne par compte: %w", err)
+	}
+	return goals, nil
+}
+
+// GetByFrequency récupère les objectifs d'épargne par fréquence
+func (r *SavingGoalRepository) GetByFrequency(ctx context.Context, userID uuid.UUID, frequency string) ([]*entity.SavingGoal, error) {
+	var goals []*entity.SavingGoal
+	err := r.db.WithContext(ctx).Model(&goals).Where("user_id = ? AND frequency = ?", userID, frequency).Order("created_at DESC").Select()
+	if err != nil {
+		return nil, fmt.Errorf("erreur récupération objectifs d'épargne par fréquence: %w", err)
+	}
+	return goals, nil
+}
+
+// GetAllSavingGoalsByUserIDAndAccountID récupère tous les objectifs d'épargne d'un utilisateur et d'un compte
+func (r *SavingGoalRepository) GetAllSavingGoalsByUserIDAndAccountID(ctx context.Context, userID uuid.UUID, accountID uuid.UUID) ([]*entity.SavingGoal, error) {
+	var goals []*entity.SavingGoal
+	err := r.db.WithContext(ctx).Model(&goals).Where("user_id = ? AND account_id = ?", userID, accountID).Order("created_at DESC").Select()
+	if err != nil {
+		return nil, fmt.Errorf("erreur récupération objectifs d'épargne par utilisateur et compte: %w", err)
+	}
+	return goals, nil
+}

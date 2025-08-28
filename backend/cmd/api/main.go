@@ -111,8 +111,8 @@ func main() {
 	authService := service.NewAuthService(userRepo, jwtService, initializationService, preferencesRepo, preferencesAIService, loggerInstance)
 	taskService := service.NewTaskService(taskRepo, loggerInstance)
 	aiService := ai.NewAIService(cfg.AI, loggerInstance)
-	transactionService := service.NewTransactionService(transactionRepo, accountRepo, categoryRepo, aiService, loggerInstance)
-	accountService := service.NewAccountService(accountRepo, loggerInstance)
+	accountService := service.NewAccountService(accountRepo, transactionRepo, savingGoalRepo, loggerInstance)
+	transactionService := service.NewTransactionService(transactionRepo, accountRepo, categoryRepo, aiService, accountService, loggerInstance)
 	budgetService := service.NewBudgetService(budgetRepo, loggerInstance)
 	savingGoalService := service.NewSavingGoalService(savingGoalRepo, loggerInstance)
 	categoryService := service.NewCategoryService(categoryRepo, aiService, loggerInstance)
@@ -129,11 +129,12 @@ func main() {
 	// authHandler := handler.NewAuthHandler(authService, loggerInstance) // TODO: implement auth routes
 	taskHandler := handler.NewTaskHandler(taskService, loggerInstance)
 	transactionHandler := handler.NewTransactionHandler(transactionService, loggerInstance)
-	accountHandler := handler.NewAccountHandler(accountService, loggerInstance)
+	accountHandler := handler.NewAccountHandler(accountService, transactionService, loggerInstance)
 	budgetHandler := handler.NewBudgetHandler(budgetService, loggerInstance)
 	savingGoalHandler := handler.NewSavingGoalHandler(savingGoalService, loggerInstance)
 	categoryHandler := handler.NewCategoryHandler(categoryService, loggerInstance)
 	preferencesHandler := handler.NewPreferencesHandler(preferencesService, loggerInstance)
+	financeDashboardHandler := handler.NewFinanceDashboardHandler(accountService, transactionService, budgetService, savingGoalService, loggerInstance)
 	// userHandler := handler.NewUserHandler(userUsecase, loggerInstance)
 	// fileHandler := handler.NewFileHandler(fileUsecase, loggerInstance) // TODO: implement file handler
 	// healthHandler := handler.NewHealthHandler(db, redisClient) // TODO: implement health handler
@@ -150,7 +151,7 @@ func main() {
 
 	// Configuration des routes
 	// TODO: Implement routes setup
-	routes.SetupRoutes(r, userUsecase, authService, authMiddleware, taskHandler, transactionHandler, accountHandler, budgetHandler, savingGoalHandler, categoryHandler, preferencesHandler, loggerInstance)
+	routes.SetupRoutes(r, userUsecase, authService, authMiddleware, taskHandler, transactionHandler, accountHandler, budgetHandler, savingGoalHandler, categoryHandler, preferencesHandler, financeDashboardHandler, loggerInstance)
 
 	// Configuration du serveur
 	server := &http.Server{

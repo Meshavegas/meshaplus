@@ -81,11 +81,19 @@ export default function Login() {
     }
 
     try {
-      await login(email, password)
-      if (require_preferences) {
-        router.replace('/dashboard/wizard')
+      const { isAuthenticated, require_preferences } = await login(email, password)
+      console.log(isAuthenticated, "isAuthenticated");
+      console.log(require_preferences, "require_preferences");
+      
+      if (isAuthenticated) {
+       
+        if (require_preferences) {
+          router.replace('/dashboard/wizard')
+        } else {
+          router.replace('/dashboard/tabs/overview')
+        }
       } else {
-        router.replace('/dashboard/tabs/overview')
+        Alert.alert('Erreur', 'Email ou mot de passe incorrect')
       }
       // Navigation will be handled by the auth state change
     } catch (error) {

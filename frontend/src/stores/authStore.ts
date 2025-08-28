@@ -15,7 +15,7 @@ interface AuthState {
 }
 
 interface AuthActions {
-  login: (email: string, password: string) => Promise<void>
+  login: (email: string, password: string) => Promise<{ isAuthenticated: boolean, require_preferences: boolean }>
   register: (userData: { name: string; email: string; password: string }) => Promise<void>
   logout: () => void
   setUser: (user: User) => void
@@ -47,7 +47,7 @@ export const useAuthStore = create<AuthStore>()(
       },
 
       // Actions
-      login: async (email: string, password: string) => {
+      login: async (email: string, password: string): Promise<{ isAuthenticated: boolean, require_preferences: boolean }> => {
         set({ error: null })
         try {
           const response = await authApi.login(email, password)
@@ -59,6 +59,7 @@ export const useAuthStore = create<AuthStore>()(
             const require_preferences = response.data.require_preferences
 
             if (user && token) {
+
               set({
                 user,
                 token,
@@ -67,18 +68,41 @@ export const useAuthStore = create<AuthStore>()(
                 error: null,
                 require_preferences: require_preferences
               })
+              return {
+                isAuthenticated: true,
+                require_preferences: require_preferences
+              }
             } else {
-              throw new Error('Données de connexion invalides')
+              set({
+                error: 'Données de connexion invalides',
+                isLoading: false
+              })
+              return {
+                isAuthenticated: false,
+                require_preferences: false
+              }
             }
           } else {
-            throw new Error('Réponse invalide du serveur')
+            set({
+              error: 'Réponse invalide du serveur',
+              isLoading: false
+            })
+            return {
+              isAuthenticated: false,
+              require_preferences: false
+            }
           }
         } catch (error) {
           console.error('Login error:', error)
+
           set({
             error: error instanceof Error ? error.message : 'Erreur de connexion',
             isLoading: false
           })
+          return {
+            isAuthenticated: false,
+            require_preferences: false
+          }
         }
       },
 

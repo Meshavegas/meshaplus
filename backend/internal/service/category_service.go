@@ -113,3 +113,8 @@ func (s *CategoryService) CreateCategory(ctx context.Context, userID uuid.UUID, 
 
 	return category, nil
 }
+
+// GetCategoryByID récupère une catégorie par son ID
+func (s *CategoryService) GetCategoryByID(ctx context.Context, userID uuid.UUID, categoryID uuid.UUID) (*entity.Category, error) {
+	return s.categoryRepo.GetByID(ctx, userID, categoryID)
+}

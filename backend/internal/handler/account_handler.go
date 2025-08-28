@@ -16,8 +16,14 @@ import (
 
 // AccountHandler gère les requêtes HTTP pour les comptes bancaires
 type AccountHandler struct {
-	accountService AccountService
-	logger         logger.Logger
+	accountService     AccountService
+	transactionService TransactionService
+	logger             logger.Logger
+}
+
+type AccountDetails struct {
+	Account      *entity.Account       `json:"account"`
+	Transactions []*entity.Transaction `json:"transactions"`
 }
 
 // AccountService interface pour les services de comptes
@@ -30,11 +36,16 @@ type AccountService interface {
 	GetAccountBalance(ctx context.Context, userID, accountID uuid.UUID) (float64, error)
 }
 
+type TransactionService interface {
+	GetTransactionsByAccountID(ctx context.Context, userID, accountID uuid.UUID) ([]*entity.TransactionWithDetails, error)
+}
+
 // NewAccountHandler crée une nouvelle instance de AccountHandler
-func NewAccountHandler(accountService AccountService, logger logger.Logger) *AccountHandler {
+func NewAccountHandler(accountService AccountService, transactionService TransactionService, logger logger.Logger) *AccountHandler {
 	return &AccountHandler{
-		accountService: accountService,
-		logger:         logger,
+		accountService:     accountService,
+		transactionService: transactionService,
+		logger:             logger,
 	}
 }
 
@@ -300,5 +311,41 @@ func (h *AccountHandler) GetAccountBalance(w http.ResponseWriter, r *http.Reques
 
 	response.Success(w, http.StatusOK, "Solde récupéré avec succès", map[string]interface{}{
 		"balance": balance,
+	})
+}
+
+func (h *AccountHandler) GetAccountDetails(w http.ResponseWriter, r *http.Request) {
+	// Récupérer l'ID utilisateur du contexte
+	userID, ok := r.Context().Value("user_id").(uuid.UUID)
+	if !ok {
+		response.Error(w, http.StatusUnauthorized, "Utilisateur non authentifié", nil)
+		return
+	}
+
+	// Récupérer l'ID du compte depuis l'URL
+	accountIDStr := chi.URLParam(r, "id")
+	accountID, err := uuid.Parse(accountIDStr)
+	if err != nil {
+		response.Error(w, http.StatusBadRequest, "ID de compte invalide", err)
+		return
+	}
+
+	accountDetails, err := h.accountService.GetAccount(r.Context(), userID, accountID)
+	if err != nil {
+		h.logger.Error("Erreur récupération détails du compte", logger.Error(err))
+		response.Error(w, http.StatusInternalServerError, "Erreur récupération détails du compte", err)
+		return
+	}
+
+	transaction, err := h.transactionService.GetTransactionsByAccountID(r.Context(), userID, accountID)
+	if err != nil {
+		h.logger.Error("Erreur récupération transactions", logger.Error(err))
+		response.Error(w, http.StatusInternalServerError, "Erreur récupération transactions", err)
+		return
+	}
+
+	response.Success(w, http.StatusOK, "Détails du compte récupérés avec succès", map[string]interface{}{
+		"account":      accountDetails,
+		"transactions": transaction,
 	})
 }

@@ -21,5 +21,6 @@ func SetupAccountRoutes(r chi.Router, accountHandler *handler.AccountHandler, au
 		r.Put("/{id}", accountHandler.UpdateAccount)             // PUT /api/v1/accounts/{id}
 		r.Delete("/{id}", accountHandler.DeleteAccount)          // DELETE /api/v1/accounts/{id}
 		r.Get("/{id}/balance", accountHandler.GetAccountBalance) // GET /api/v1/accounts/{id}/balance
+		r.Get("/{id}/details", accountHandler.GetAccountDetails) // GET /api/v1/accounts/{id}/details
 	})
 }

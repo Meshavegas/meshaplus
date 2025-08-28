@@ -36,24 +36,28 @@ type UpdateTaskRequest struct {
 
 // CreateTransactionRequest représente la requête pour créer une transaction
 type CreateTransactionRequest struct {
-	AccountID   uuid.UUID  `json:"account_id" validate:"required,uuid" example:"123e4567-e89b-12d3-a456-426614174000"`
-	CategoryID  *uuid.UUID `json:"category_id,omitempty" validate:"omitempty,uuid" example:"123e4567-e89b-12d3-a456-426614174000"`
-	Type        string     `json:"type" validate:"required,oneof=income expense" example:"expense"`
-	Amount      float64    `json:"amount" validate:"required,gt=0" example:"25.50"`
-	Description string     `json:"description" validate:"required,min=1,max=255" example:"Achat alimentaire"`
-	Date        time.Time  `json:"date" validate:"required" example:"2024-01-15T00:00:00Z"`
-	Recurring   bool       `json:"recurring" example:"false"`
+	AccountID    *uuid.UUID `json:"account_id,omitempty" validate:"omitempty,uuid" example:"123e4567-e89b-12d3-a456-426614174000"`
+	CategoryID   *uuid.UUID `json:"category_id,omitempty" validate:"omitempty,uuid" example:"123e4567-e89b-12d3-a456-426614174000"`
+	Type         string     `json:"type" validate:"required,oneof=income expense transfer saving refund" example:"expense"`
+	ToAccountID  *uuid.UUID `json:"to_account_id,omitempty" validate:"omitempty,uuid" example:"123e4567-e89b-12d3-a456-426614174000"`
+	SavingGoalID *uuid.UUID `json:"saving_goal_id,omitempty" validate:"omitempty,uuid" example:"123e4567-e89b-12d3-a456-426614174000"`
+	Amount       float64    `json:"amount" validate:"required" example:"25.50"`
+	Description  string     `json:"description" validate:"required,min=1,max=255" example:"Achat alimentaire"`
+	Date         time.Time  `json:"date" validate:"required" example:"2024-01-15T00:00:00Z"`
+	Recurring    bool       `json:"recurring" example:"false"`
 }
 
 // UpdateTransactionRequest représente la requête pour mettre à jour une transaction
 type UpdateTransactionRequest struct {
-	AccountID   *uuid.UUID `json:"account_id,omitempty" validate:"omitempty,uuid" example:"123e4567-e89b-12d3-a456-426614174000"`
-	CategoryID  *uuid.UUID `json:"category_id,omitempty" validate:"omitempty,uuid" example:"123e4567-e89b-12d3-a456-426614174000"`
-	Type        *string    `json:"type,omitempty" validate:"omitempty,oneof=income expense" example:"income"`
-	Amount      *float64   `json:"amount,omitempty" validate:"omitempty,gt=0" example:"100.00"`
-	Description *string    `json:"description,omitempty" validate:"omitempty,min=1,max=255" example:"Salaire mensuel"`
-	Date        *time.Time `json:"date,omitempty" validate:"omitempty" example:"2024-01-15T00:00:00Z"`
-	Recurring   *bool      `json:"recurring,omitempty" example:"true"`
+	AccountID    *uuid.UUID `json:"account_id,omitempty" validate:"omitempty,uuid" example:"123e4567-e89b-12d3-a456-426614174000"`
+	CategoryID   *uuid.UUID `json:"category_id,omitempty" validate:"omitempty,uuid" example:"123e4567-e89b-12d3-a456-426614174000"`
+	Type         *string    `json:"type,omitempty" validate:"omitempty,oneof=income expense transfer saving refund" example:"income"`
+	ToAccountID  *uuid.UUID `json:"to_account_id,omitempty" validate:"omitempty,uuid" example:"123e4567-e89b-12d3-a456-426614174000"`
+	SavingGoalID *uuid.UUID `json:"saving_goal_id,omitempty" validate:"omitempty,uuid" example:"123e4567-e89b-12d3-a456-426614174000"`
+	Amount       *float64   `json:"amount,omitempty" validate:"omitempty" example:"100.00"`
+	Description  *string    `json:"description,omitempty" validate:"omitempty,min=1,max=255" example:"Salaire mensuel"`
+	Date         *time.Time `json:"date,omitempty" validate:"omitempty" example:"2024-01-15T00:00:00Z"`
+	Recurring    *bool      `json:"recurring,omitempty" example:"true"`
 }
 
 // ==================== BUDGET REQUESTS ====================
@@ -61,15 +65,17 @@ type UpdateTransactionRequest struct {
 // CreateBudgetRequest représente la requête pour créer un budget
 type CreateBudgetRequest struct {
 	CategoryID    uuid.UUID `json:"category_id" validate:"required,uuid" example:"123e4567-e89b-12d3-a456-426614174000"`
+	Name          string    `json:"name" validate:"required,min=1,max=255" example:"Budget Alimentation Janvier"`
 	AmountPlanned float64   `json:"amount_planned" validate:"required,gt=0" example:"500.00"`
-	Month         int       `json:"month" validate:"required,min=1,max=12" example:"1"`
-	Year          int       `json:"year" validate:"required,min=2020" example:"2024"`
+	Period        string    `json:"period" validate:"required,oneof=monthly yearly weekly daily" example:"monthly"`
 }
 
 // UpdateBudgetRequest représente la requête pour mettre à jour un budget
 type UpdateBudgetRequest struct {
+	Name          *string  `json:"name,omitempty" validate:"omitempty,min=1,max=255" example:"Budget Alimentation Février"`
 	AmountPlanned *float64 `json:"amount_planned,omitempty" validate:"omitempty,gt=0" example:"600.00"`
 	AmountSpent   *float64 `json:"amount_spent,omitempty" validate:"omitempty,gte=0" example:"450.00"`
+	Period        *string  `json:"period,omitempty" validate:"omitempty,oneof=monthly yearly weekly daily" example:"monthly"`
 }
 
 // ==================== SAVING GOAL REQUESTS ====================
@@ -133,10 +139,13 @@ type UpdateCategoryRequest struct {
 
 // CreateAccountRequest représente la requête pour créer un compte
 type CreateAccountRequest struct {
-	Name     string  `json:"name" validate:"required,min=1,max=255" example:"Compte principal"`
-	Type     string  `json:"type" validate:"required,oneof=checking savings mobile_money" example:"checking"`
-	Balance  float64 `json:"balance" validate:"gte=0" example:"1500.00"`
-	Currency string  `json:"currency" validate:"required,len=3" example:"EUR"`
+	Name          string  `json:"name" validate:"required,min=1,max=255" example:"Compte principal"`
+	Type          string  `json:"type" validate:"required,oneof=checking savings mobile_money" example:"checking"`
+	Balance       float64 `json:"balance" validate:"gte=0" example:"1500.00"`
+	Currency      string  `json:"currency" validate:"required,len=3" example:"EUR"`
+	Icon          string  `json:"icon" validate:"omitempty,max=50" example:"fad:utensils"`
+	Color         string  `json:"color" validate:"omitempty,max=20" example:"#FF6B6B"`
+	AccountNumber *string `json:"account_number,omitempty" validate:"omitempty,max=50" example:"1234567890"`
 }
 
 // UpdateAccountRequest représente la requête pour mettre à jour un compte
@@ -151,15 +160,78 @@ type UpdateAccountRequest struct {
 
 // CreateMoodRequest représente la requête pour créer une humeur
 type CreateMoodRequest struct {
-	Feeling string `json:"feeling" validate:"required,min=1,max=50" example:"happy"`
-	Note    string `json:"note,omitempty" validate:"omitempty,max=500" example:"Journée productive aujourd'hui"`
-	Date    string `json:"date" validate:"required,datetime=2006-01-02" example:"2024-01-15"`
+	Feeling string    `json:"feeling" validate:"required,min=1,max=50" example:"happy"`
+	Note    string    `json:"note,omitempty" validate:"omitempty,max=500" example:"Journée productive aujourd'hui"`
+	Date    time.Time `json:"date" validate:"required" example:"2024-01-15T00:00:00Z"`
 }
 
 // UpdateMoodRequest représente la requête pour mettre à jour une humeur
 type UpdateMoodRequest struct {
 	Feeling *string `json:"feeling,omitempty" validate:"omitempty,min=1,max=50" example:"excited"`
 	Note    *string `json:"note,omitempty" validate:"omitempty,max=500" example:"Projet terminé avec succès"`
+}
+
+// ==================== NOTIFICATION REQUESTS ====================
+
+// CreateNotificationRequest représente la requête pour créer une notification
+type CreateNotificationRequest struct {
+	Title   string `json:"title" validate:"required,min=1,max=255" example:"Nouveau message"`
+	Message string `json:"message" validate:"required,min=1,max=1000" example:"Vous avez reçu un nouveau message important"`
+}
+
+// ==================== MOTIVATION REQUESTS ====================
+
+// CreateMotivationRequest représente la requête pour créer une motivation
+type CreateMotivationRequest struct {
+	Content string `json:"content" validate:"required,min=1,max=1000" example:"La persistance est le chemin du succès"`
+	Type    string `json:"type" validate:"required,oneof=quote tip challenge" example:"quote"`
+}
+
+// UpdateMotivationRequest représente la requête pour mettre à jour une motivation
+type UpdateMotivationRequest struct {
+	Content *string `json:"content,omitempty" validate:"omitempty,min=1,max=1000" example:"La persistance mène toujours au succès"`
+	Type    *string `json:"type,omitempty" validate:"omitempty,oneof=quote tip challenge" example:"quote"`
+}
+
+// ==================== LIFE NOTE REQUESTS ====================
+
+// CreateLifeNoteRequest représente la requête pour créer une note de vie
+type CreateLifeNoteRequest struct {
+	Title         string     `json:"title" validate:"required,min=1,max=255" example:"Réflexions du jour"`
+	Content       string     `json:"content" validate:"required,min=1,max=5000" example:"Aujourd'hui j'ai appris que..."`
+	RelatedGoalID *uuid.UUID `json:"related_goal_id,omitempty" validate:"omitempty,uuid" example:"123e4567-e89b-12d3-a456-426614174000"`
+}
+
+// UpdateLifeNoteRequest représente la requête pour mettre à jour une note de vie
+type UpdateLifeNoteRequest struct {
+	Title         *string    `json:"title,omitempty" validate:"omitempty,min=1,max=255" example:"Nouvelles réflexions"`
+	Content       *string    `json:"content,omitempty" validate:"omitempty,min=1,max=5000" example:"Mise à jour de mes pensées..."`
+	RelatedGoalID *uuid.UUID `json:"related_goal_id,omitempty" validate:"omitempty,uuid" example:"123e4567-e89b-12d3-a456-426614174000"`
+}
+
+// ==================== WEEKLY SUMMARY REQUESTS ====================
+
+// CreateWeeklySummaryRequest représente la requête pour créer un résumé hebdomadaire
+type CreateWeeklySummaryRequest struct {
+	WeekStartDate       time.Time `json:"week_start_date" validate:"required" example:"2024-01-15T00:00:00Z"`
+	TasksCompleted      int       `json:"tasks_completed" validate:"gte=0" example:"12"`
+	TotalRevenue        float64   `json:"total_revenue" validate:"gte=0" example:"2500.00"`
+	TotalExpense        float64   `json:"total_expense" validate:"gte=0" example:"1800.00"`
+	Savings             float64   `json:"savings" validate:"gte=0" example:"700.00"`
+	GoalProgressSummary string    `json:"goal_progress_summary" validate:"max=1000" example:"3 objectifs en cours, 1 atteint cette semaine"`
+	MoodAverage         float64   `json:"mood_average" validate:"gte=0,lte=5" example:"4.2"`
+	Notes               string    `json:"notes,omitempty" validate:"omitempty,max=2000" example:"Bonne semaine productive"`
+}
+
+// UpdateWeeklySummaryRequest représente la requête pour mettre à jour un résumé hebdomadaire
+type UpdateWeeklySummaryRequest struct {
+	TasksCompleted      *int     `json:"tasks_completed,omitempty" validate:"omitempty,gte=0" example:"15"`
+	TotalRevenue        *float64 `json:"total_revenue,omitempty" validate:"omitempty,gte=0" example:"2600.00"`
+	TotalExpense        *float64 `json:"total_expense,omitempty" validate:"omitempty,gte=0" example:"1900.00"`
+	Savings             *float64 `json:"savings,omitempty" validate:"omitempty,gte=0" example:"700.00"`
+	GoalProgressSummary *string  `json:"goal_progress_summary,omitempty" validate:"omitempty,max=1000" example:"4 objectifs en cours"`
+	MoodAverage         *float64 `json:"mood_average,omitempty" validate:"omitempty,gte=0,lte=5" example:"4.5"`
+	Notes               *string  `json:"notes,omitempty" validate:"omitempty,max=2000" example:"Excellente semaine"`
 }
 
 // ==================== BULK OPERATION REQUESTS ====================

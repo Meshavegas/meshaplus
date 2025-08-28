@@ -225,3 +225,14 @@ func (s *SavingGoalService) DeleteSavingGoal(ctx context.Context, userID uuid.UU
 
 	return nil
 }
+
+// GetSavingGoalsByUserID récupère tous les objectifs d'épargne d'un utilisateur
+func (s *SavingGoalService) GetSavingGoalsByUserID(ctx context.Context, userID uuid.UUID) ([]*entity.SavingGoal, error) {
+	goals, err := s.savingGoalRepo.GetByUserID(ctx, userID)
+	if err != nil {
+		s.logger.Error("Erreur récupération objectifs d'épargne utilisateur", logger.Error(err))
+		return nil, fmt.Errorf("erreur récupération objectifs d'épargne: %w", err)
+	}
+
+	return goals, nil
+}

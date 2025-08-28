@@ -37,7 +37,7 @@ type Account struct {
 	ID            uuid.UUID `json:"id" db:"id"`
 	UserID        uuid.UUID `json:"user_id" db:"user_id"`
 	Name          string    `json:"name" db:"name"`       // ex: "Bancaire", "Cash"
-	Type          string    `json:"type" db:"type"`       // checking, savings, mobile_money
+	Type          string    `json:"type" db:"type"`       // checking, savings, mobile_money, debt, other
 	Balance       float64   `json:"balance" db:"balance"` // solde actuel
 	Currency      string    `json:"currency" db:"currency"`
 	AccountNumber *string   `json:"account_number,omitempty" db:"account_number"`
@@ -48,17 +48,19 @@ type Account struct {
 }
 
 type Transaction struct {
-	ID          uuid.UUID  `json:"id" db:"id"`
-	UserID      uuid.UUID  `json:"user_id" db:"user_id"`
-	AccountID   uuid.UUID  `json:"account_id" db:"account_id"`
-	CategoryID  *uuid.UUID `json:"category_id,omitempty" db:"category_id"`
-	Type        string     `json:"type" db:"type"` // income, expense
-	Amount      float64    `json:"amount" db:"amount"`
-	Description string     `json:"description" db:"description"`
-	Date        time.Time  `json:"date" db:"date"`
-	Recurring   bool       `json:"recurring" db:"recurring"`
-	CreatedAt   time.Time  `json:"created_at" db:"created_at"`
-	UpdatedAt   time.Time  `json:"updated_at" db:"updated_at"`
+	ID           uuid.UUID  `json:"id" db:"id"`
+	UserID       uuid.UUID  `json:"user_id" db:"user_id"`
+	AccountID    *uuid.UUID `json:"account_id,omitempty" db:"account_id"`
+	CategoryID   *uuid.UUID `json:"category_id,omitempty" db:"category_id"`
+	Type         string     `json:"type" db:"type"` // income, expense, transfer, saving, refund
+	ToAccountID  *uuid.UUID `json:"to_account_id,omitempty" db:"to_account_id"`
+	SavingGoalID *uuid.UUID `json:"saving_goal_id,omitempty" db:"saving_goal_id"`
+	Amount       float64    `json:"amount" db:"amount"`
+	Description  string     `json:"description" db:"description"`
+	Date         time.Time  `json:"date" db:"date"`
+	Recurring    bool       `json:"recurring" db:"recurring"`
+	CreatedAt    time.Time  `json:"created_at" db:"created_at"`
+	UpdatedAt    time.Time  `json:"updated_at" db:"updated_at"`
 }
 
 // Reminder représente un rappel ou notification intelligente
@@ -89,6 +91,7 @@ type Category struct {
 type SavingGoal struct {
 	ID            uuid.UUID  `json:"id" db:"id"`
 	UserID        uuid.UUID  `json:"user_id" db:"user_id"`
+	AccountID     uuid.UUID  `json:"account_id" db:"account_id"`
 	Title         string     `json:"title" db:"title"`
 	TargetAmount  float64    `json:"target_amount" db:"target_amount"`
 	CurrentAmount float64    `json:"current_amount" db:"current_amount"`
@@ -104,10 +107,10 @@ type Budget struct {
 	ID            uuid.UUID `json:"id" db:"id"`
 	UserID        uuid.UUID `json:"user_id" db:"user_id"`
 	CategoryID    uuid.UUID `json:"category_id" db:"category_id"`
+	Name          string    `json:"name" db:"name"`
 	AmountPlanned float64   `json:"amount_planned" db:"amount_planned"`
 	AmountSpent   float64   `json:"amount_spent" db:"amount_spent"`
-	Month         int       `json:"month" db:"month"`
-	Year          int       `json:"year" db:"year"`
+	Period        string    `json:"period" db:"period"` // monthly, yearly, weekly, daily
 	CreatedAt     time.Time `json:"created_at" db:"created_at"`
 	UpdatedAt     time.Time `json:"updated_at" db:"updated_at"`
 }
@@ -153,4 +156,22 @@ type WeeklySummary struct {
 	GoalProgressSummary string    `json:"goal_progress_summary" db:"goal_progress_summary"`
 	MoodAverage         float64   `json:"mood_average" db:"mood_average"`
 	Notes               string    `json:"notes" db:"notes"`
+}
+
+// TransactionWithDetails représente une transaction avec les détails complets de sa catégorie
+type TransactionWithDetails struct {
+	ID           uuid.UUID  `json:"id" db:"id"`
+	UserID       uuid.UUID  `json:"user_id" db:"user_id"`
+	AccountID    *uuid.UUID `json:"account_id,omitempty" db:"account_id"`
+	CategoryID   *uuid.UUID `json:"category_id,omitempty" db:"category_id"`
+	Type         string     `json:"type" db:"type"` // income, expense, transfer, saving, refund
+	ToAccountID  *uuid.UUID `json:"to_account_id,omitempty" db:"to_account_id"`
+	SavingGoalID *uuid.UUID `json:"saving_goal_id,omitempty" db:"saving_goal_id"`
+	Amount       float64    `json:"amount" db:"amount"`
+	Description  string     `json:"description" db:"description"`
+	Date         time.Time  `json:"date" db:"date"`
+	Recurring    bool       `json:"recurring" db:"recurring"`
+	CreatedAt    time.Time  `json:"created_at" db:"created_at"`
+	UpdatedAt    time.Time  `json:"updated_at" db:"updated_at"`
+	Category     *Category  `json:"category,omitempty" pg:"rel:has-one"` // Détails complets de la catégorie
 }

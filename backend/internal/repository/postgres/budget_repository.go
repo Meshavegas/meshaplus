@@ -45,7 +45,7 @@ func (r *BudgetRepository) GetByID(ctx context.Context, id uuid.UUID) (*entity.B
 // GetByUserID récupère tous les budgets d'un utilisateur
 func (r *BudgetRepository) GetByUserID(ctx context.Context, userID uuid.UUID) ([]*entity.Budget, error) {
 	var budgets []*entity.Budget
-	err := r.db.WithContext(ctx).Model(&budgets).Where("user_id = ?", userID).Order("year DESC").Order("month DESC").Select()
+	err := r.db.WithContext(ctx).Model(&budgets).Where("user_id = ?", userID).Order("created_at DESC").Select()
 	if err != nil {
 		return nil, fmt.Errorf("erreur récupération budgets utilisateur: %w", err)
 	}
@@ -73,19 +73,29 @@ func (r *BudgetRepository) Delete(ctx context.Context, id uuid.UUID) error {
 // GetByCategoryID récupère les budgets d'une catégorie
 func (r *BudgetRepository) GetByCategoryID(ctx context.Context, userID uuid.UUID, categoryID uuid.UUID) ([]*entity.Budget, error) {
 	var budgets []*entity.Budget
-	err := r.db.WithContext(ctx).Model(&budgets).Where("user_id = ? AND category_id = ?", userID, categoryID).Order("year DESC").Order("month DESC").Select()
+	err := r.db.WithContext(ctx).Model(&budgets).Where("user_id = ? AND category_id = ?", userID, categoryID).Order("created_at DESC").Select()
 	if err != nil {
 		return nil, fmt.Errorf("erreur récupération budgets par catégorie: %w", err)
 	}
 	return budgets, nil
 }
 
-// GetByMonth récupère les budgets d'un mois spécifique
-func (r *BudgetRepository) GetByMonth(ctx context.Context, userID uuid.UUID, month, year int) ([]*entity.Budget, error) {
+// GetByPeriod récupère les budgets d'une période spécifique
+func (r *BudgetRepository) GetByPeriod(ctx context.Context, userID uuid.UUID, period string) ([]*entity.Budget, error) {
 	var budgets []*entity.Budget
-	err := r.db.WithContext(ctx).Model(&budgets).Where("user_id = ? AND month = ? AND year = ?", userID, month, year).Order("created_at DESC").Select()
+	err := r.db.WithContext(ctx).Model(&budgets).Where("user_id = ? AND period = ?", userID, period).Order("created_at DESC").Select()
 	if err != nil {
-		return nil, fmt.Errorf("erreur récupération budgets par mois: %w", err)
+		return nil, fmt.Errorf("erreur récupération budgets par période: %w", err)
+	}
+	return budgets, nil
+}
+
+// GetByName récupère les budgets par nom
+func (r *BudgetRepository) GetByName(ctx context.Context, userID uuid.UUID, name string) ([]*entity.Budget, error) {
+	var budgets []*entity.Budget
+	err := r.db.WithContext(ctx).Model(&budgets).Where("user_id = ? AND name ILIKE ?", userID, "%"+name+"%").Order("created_at DESC").Select()
+	if err != nil {
+		return nil, fmt.Errorf("erreur récupération budgets par nom: %w", err)
 	}
 	return budgets, nil
 }

@@ -67,8 +67,6 @@ func (s *InitializationService) CreateBudgetsFromPreferences(ctx context.Context
 
 	// Obtenir le mois et l'année actuels
 	now := time.Now()
-	currentMonth := int(now.Month())
-	currentYear := now.Year()
 
 	// Créer des budgets basés sur les préférences
 	budgetsToCreate := []struct {
@@ -95,10 +93,10 @@ func (s *InitializationService) CreateBudgetsFromPreferences(ctx context.Context
 				ID:            uuid.New(),
 				UserID:        userID,
 				CategoryID:    category.ID,
+				Name:          fmt.Sprintf("Budget %s %s", budgetData.categoryName, now.Format("2006-01")),
 				AmountPlanned: budgetData.amount,
 				AmountSpent:   0, // Nouveau budget, pas encore de dépenses
-				Month:         currentMonth,
-				Year:          currentYear,
+				Period:        "monthly",
 				CreatedAt:     now,
 				UpdatedAt:     now,
 			}

@@ -1,5 +1,5 @@
 import apiClient, { apiHelpers } from "../api/client"
-import { CreateTransactionRequest, Transaction } from "@/src/types"
+import { CreateTransactionRequest } from "@/src/types"
 
 const transactionApi = {
   createTransaction: async (transaction: CreateTransactionRequest): Promise<Transaction> => {
@@ -30,6 +30,7 @@ const transactionApi = {
   getTransaction: async (id: string): Promise<Transaction> => {
     try {
       const response = await apiClient.get(`/transactions/${id}`)
+      console.log(response.data.data,"response.data.data transaction")
       return response.data.data
     } catch (error) {
       console.error('Get transaction error:', error)
@@ -52,6 +53,16 @@ const transactionApi = {
       await apiClient.delete(`/transactions/${id}`)
     } catch (error) {
       console.error('Delete transaction error:', error)
+      throw error
+    }
+  },
+
+  getTransactionsByAccount: async (accountId: string): Promise<Transaction[]> => {
+    try {
+      const response = await apiClient.get(`/transactions?accountId=${accountId}`)
+      return response.data.data
+    } catch (error) {
+      console.error('Get transactions by account error:', error)
       throw error
     }
   }

@@ -13,7 +13,7 @@ import {
 } from 'react-native'
 import { Button } from '@/src/components/ui/Button'
 import { colors, spacing } from '@/src/theme'
-import { CreateTransactionRequest, Category, Account } from '@/src/types'
+import { CreateTransactionRequest, Category } from '@/src/types'
 import Select from '../Select'
 import Icon from '../Icons'
 import { isEmpty } from '@/src/utils/stringUtils'

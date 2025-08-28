@@ -32,6 +32,16 @@ const categoryApi = {
       console.error('Create category error:', error)
       throw error
     }
+  },
+
+  getCategory: async (id: string): Promise<Category> => {
+    try {
+      const response = await apiHelpers.get<{data: Category}>(`/categories/${id}`)
+      return response.data
+    } catch (error) {
+      console.error('Get category error:', error)
+      throw error
+    }
   }
 }
 

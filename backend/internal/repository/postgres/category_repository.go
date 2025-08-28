@@ -5,6 +5,7 @@ import (
 	"backend/internal/domaine/repository"
 	"backend/pkg/logger"
 	"context"
+	"fmt"
 
 	"github.com/go-pg/pg/v10"
 	"github.com/google/uuid"
@@ -34,19 +35,19 @@ func (r *CategoryRepository) Create(ctx context.Context, category *entity.Catego
 }
 
 // GetByID récupère une catégorie par son ID
-func (r *CategoryRepository) GetByID(ctx context.Context, id uuid.UUID) (*entity.Category, error) {
+func (r *CategoryRepository) GetByID(ctx context.Context, userID uuid.UUID, id uuid.UUID) (*entity.Category, error) {
 	var category entity.Category
 
 	query := `
 		SELECT id, user_id, name, type, parent_id, icon, color, created_at
 		FROM categories 
-		WHERE id = ?
+		WHERE id = ? AND user_id = ?
 	`
 
-	_, err := r.db.QueryOneContext(ctx, &category, query, id)
+	_, err := r.db.QueryOneContext(ctx, &category, query, id, userID)
 	if err != nil {
 		if err == pg.ErrNoRows {
-			return nil, nil
+			return nil, fmt.Errorf("catégorie non trouvée")
 		}
 		r.logger.Error("Erreur récupération catégorie par ID", logger.Error(err))
 		return nil, err

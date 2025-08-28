@@ -1,5 +1,5 @@
 import apiClient, { apiHelpers } from "../api/client"
-import { Account } from "@/src/types"
+
 
 const accountApi = {
   getAccounts: async (): Promise<Account[]> => {
@@ -12,17 +12,17 @@ const accountApi = {
     }
   },
 
-  getAccount: async (id: string): Promise<Account> => {
+  getAccount: async (id: string): Promise<AccountDetails> => {
     try {
-      const response = await apiClient.get(`/accounts/${id}`)
-      return response.data.data
+      const response = await apiHelpers.get<{data: AccountDetails}>(`/accounts/${id}/details`)
+      return response.data
     } catch (error) {
       console.error('Get account error:', error)
       throw error
     }
   },
 
-  createAccount: async (account: { name: string; type: string; balance: number; currency: string }): Promise<Account> => {
+  createAccount: async (account: IAccountRequest): Promise<Account> => {
     try {
       const response = await apiClient.post('/accounts', account)
       return response.data.data
@@ -38,6 +38,15 @@ const accountApi = {
       return response.data.data
     } catch (error) {
       console.error('Update account error:', error)
+      throw error
+    }
+  },
+
+  deleteAccount: async (id: string): Promise<void> => {
+    try {
+      await apiClient.delete(`/accounts/${id}`)
+    } catch (error) {
+      console.error('Delete account error:', error)
       throw error
     }
   }

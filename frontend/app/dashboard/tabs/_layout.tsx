@@ -8,9 +8,15 @@ export default function DashboardLayout() {
         tabBarActiveTintColor: '#0891b2',
         tabBarInactiveTintColor: '#64748b',
         tabBarStyle: {
-          backgroundColor: '#ffffff',
-          borderTopWidth: 1,
+          position: 'absolute',
+          backgroundColor: '#A0AEC030',
+          borderRadius: 100,
           borderTopColor: '#e2e8f0',
+          marginHorizontal: 20,
+          borderWidth: 1,
+          bottom: 40,
+          height: 60,
+          flexDirection: 'row',
         },
         headerShown: false,
         headerStyle: {

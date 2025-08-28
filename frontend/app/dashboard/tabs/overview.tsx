@@ -7,7 +7,7 @@ import { useAuthStore } from '@/src';
 import { TransactionForm } from '@/src/components/forms/TransactionForm';
 import transactionApi from '@/src/services/transactionService/transactionApi';
 import categoryApi from '@/src/services/categoryService/categoryApi';
-import accountApi from '@/src/services/accountService/accountApi';
+// import {accountApi} from '@/src/services/accountService/accountApi';
 import taskApi from '@/src/services/taskService/taskApi';
 import budgetApi from '@/src/services/budgetService/budgetApi';
 import savingGoalApi from '@/src/services/savingGoalService/savingGoalApi';
@@ -26,6 +26,7 @@ import {
 } from '@/src/types';
 import { TaskForm } from '@/src/components/forms/TaskForm';
 import { Link, Redirect } from 'expo-router';
+import accountApi from '@/src/services/accountService/accountApi';
 
 export default function Overview() {
   const { user, require_preferences } = useAuthStore()
@@ -68,7 +69,7 @@ export default function Overview() {
         budgetApi.getBudgets()
       ])
 
-      console.log("categoriesData", JSON.stringify(budgetStatsData, null, 2))
+      // console.log("categoriesData", JSON.stringify(budgetStatsData, null, 2))
       setCategories(categoriesData)
       setAccounts(accountsData)
       setTasks(tasksData)

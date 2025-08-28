@@ -126,6 +126,22 @@ func RunMigrations(db *pg.DB, loggerInstance logger.Logger) error {
 		return fmt.Errorf("erreur création table preferences: %w", err)
 	}
 
+	// Migration 23: Mettre à jour la table transactions
+	if err := updateTransactionsTable(db, loggerInstance); err != nil {
+		return fmt.Errorf("erreur mise à jour table transactions: %w", err)
+	}
+
+	// Migration 24: Mettre à jour la table saving_goals
+	if err := updateSavingGoalsTable(db, loggerInstance); err != nil {
+		return fmt.Errorf("erreur mise à jour table saving_goals: %w", err)
+	}
+
+	// Migration 25: Mettre à jour la table budgets
+	// Note: Table budgets maintenant créée directement avec la nouvelle structure
+	// if err := updateBudgetsTable(db, loggerInstance); err != nil {
+	// 	return fmt.Errorf("erreur mise à jour table budgets: %w", err)
+	// }
+
 	loggerInstance.Info("Toutes les migrations ont été exécutées avec succès")
 	return nil
 }
@@ -239,6 +255,31 @@ func createCategoriesTable(db *pg.DB, loggerInstance logger.Logger) error {
 			loggerInstance.Error("Erreur création index categories", logger.Error(err))
 			return err
 		}
+	}
+
+	// Mettre à jour les catégories existantes qui n'ont pas d'icônes/couleurs
+	updateQuery := `
+	UPDATE categories 
+	SET 
+		icon = CASE 
+			WHEN type = 'expense' THEN 'md:category'
+			WHEN type = 'revenue' THEN 'fa5:money-check-alt'
+			WHEN type = 'task' THEN 'md:work'
+			ELSE 'md:category'
+		END,
+		color = CASE 
+			WHEN type = 'expense' THEN '#FF6B6B'
+			WHEN type = 'revenue' THEN '#00B894'
+			WHEN type = 'task' THEN '#74B9FF'
+			ELSE '#6C5CE7'
+		END
+	WHERE icon IS NULL OR icon = '' OR color IS NULL OR color = '';
+	`
+
+	_, err = db.Exec(updateQuery)
+	if err != nil {
+		loggerInstance.Error("Erreur mise à jour catégories existantes", logger.Error(err))
+		return err
 	}
 
 	loggerInstance.Info("Table categories créée/mise à jour")
@@ -1072,16 +1113,16 @@ func createBudgetsTable(db *pg.DB, loggerInstance logger.Logger) error {
 		category_id UUID NOT NULL REFERENCES categories(id) ON DELETE CASCADE,
 		amount_planned DECIMAL(10,2) NOT NULL CHECK (amount_planned > 0),
 		amount_spent DECIMAL(10,2) NOT NULL DEFAULT 0,
-		month INTEGER NOT NULL CHECK (month >= 1 AND month <= 12),
-		year INTEGER NOT NULL CHECK (year >= 2020),
+		name VARCHAR(255) NOT NULL,
+		period VARCHAR(50) NOT NULL CHECK (period IN ('monthly', 'yearly', 'weekly', 'daily')),
 		created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-		updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-		UNIQUE(user_id, category_id, month, year)
+		updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 	);
 	
 	CREATE INDEX IF NOT EXISTS idx_budgets_user_id ON budgets(user_id);
 	CREATE INDEX IF NOT EXISTS idx_budgets_category_id ON budgets(category_id);
-	CREATE INDEX IF NOT EXISTS idx_budgets_month_year ON budgets(month, year);
+	CREATE INDEX IF NOT EXISTS idx_budgets_period ON budgets(period);
+	CREATE INDEX IF NOT EXISTS idx_budgets_name ON budgets(name);
 	`
 
 	_, err := db.Exec(query)
@@ -1150,5 +1191,223 @@ func createPreferencesTable(db *pg.DB, loggerInstance logger.Logger) error {
 	}
 
 	loggerInstance.Info("Table preferences créée")
+	return nil
+}
+
+// updateTransactionsTable met à jour la table transactions pour correspondre à la nouvelle entité
+func updateTransactionsTable(db *pg.DB, loggerInstance logger.Logger) error {
+	migrationQueries := []string{
+		// Rendre account_id optionnel
+		`DO $$ 
+		BEGIN 
+			-- Supprimer la contrainte NOT NULL sur account_id
+			ALTER TABLE transactions ALTER COLUMN account_id DROP NOT NULL;
+		EXCEPTION WHEN OTHERS THEN
+			-- Ignorer l'erreur si la contrainte n'existe pas déjà
+			NULL;
+		END $$;`,
+
+		// Rendre category_id optionnel
+		`DO $$ 
+		BEGIN 
+			-- Supprimer la contrainte NOT NULL sur category_id
+			ALTER TABLE transactions ALTER COLUMN category_id DROP NOT NULL;
+		EXCEPTION WHEN OTHERS THEN
+			-- Ignorer l'erreur si la contrainte n'existe pas déjà
+			NULL;
+		END $$;`,
+
+		// Ajouter la colonne to_account_id si elle n'existe pas
+		`DO $$ 
+		BEGIN 
+			IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'transactions' AND column_name = 'to_account_id') THEN
+				ALTER TABLE transactions ADD COLUMN to_account_id UUID REFERENCES accounts(id) ON DELETE SET NULL;
+			END IF;
+		END $$;`,
+
+		// Ajouter la colonne saving_goal_id si elle n'existe pas
+		`DO $$ 
+		BEGIN 
+			IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'transactions' AND column_name = 'saving_goal_id') THEN
+				ALTER TABLE transactions ADD COLUMN saving_goal_id UUID REFERENCES saving_goals(id) ON DELETE SET NULL;
+			END IF;
+		END $$;`,
+
+		// Mettre à jour la contrainte CHECK pour inclure les nouveaux types
+		`DO $$ 
+		BEGIN 
+			-- Supprimer l'ancienne contrainte si elle existe
+			IF EXISTS (SELECT 1 FROM information_schema.check_constraints WHERE constraint_name = 'transactions_type_check') THEN
+				ALTER TABLE transactions DROP CONSTRAINT transactions_type_check;
+			END IF;
+			
+			-- Ajouter la nouvelle contrainte avec tous les types
+			ALTER TABLE transactions ADD CONSTRAINT transactions_type_check CHECK (type IN ('income', 'expense', 'transfer', 'saving', 'refund'));
+		END $$;`,
+
+		// Supprimer la contrainte CHECK sur amount pour permettre les valeurs négatives
+		`DO $$ 
+		BEGIN 
+			-- Supprimer l'ancienne contrainte si elle existe
+			IF EXISTS (SELECT 1 FROM information_schema.check_constraints WHERE constraint_name = 'transactions_amount_check') THEN
+				ALTER TABLE transactions DROP CONSTRAINT transactions_amount_check;
+			END IF;
+		END $$;`,
+	}
+
+	// Exécuter les migrations
+	for _, query := range migrationQueries {
+		_, err := db.Exec(query)
+		if err != nil {
+			loggerInstance.Error("Erreur mise à jour table transactions", logger.Error(err))
+			return err
+		}
+	}
+
+	// Créer les nouveaux index
+	indexQueries := []string{
+		`CREATE INDEX IF NOT EXISTS idx_transactions_to_account_id ON transactions(to_account_id);`,
+		`CREATE INDEX IF NOT EXISTS idx_transactions_saving_goal_id ON transactions(saving_goal_id);`,
+	}
+
+	for _, query := range indexQueries {
+		_, err := db.Exec(query)
+		if err != nil {
+			loggerInstance.Error("Erreur création index transactions", logger.Error(err))
+			return err
+		}
+	}
+
+	loggerInstance.Info("Table transactions mise à jour")
+	return nil
+}
+
+// updateSavingGoalsTable met à jour la table saving_goals pour correspondre à la nouvelle entité
+func updateSavingGoalsTable(db *pg.DB, loggerInstance logger.Logger) error {
+	migrationQueries := []string{
+		// Ajouter la colonne account_id si elle n'existe pas
+		`DO $$ 
+		BEGIN 
+			IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'saving_goals' AND column_name = 'account_id') THEN
+				ALTER TABLE saving_goals ADD COLUMN account_id UUID REFERENCES accounts(id) ON DELETE CASCADE;
+			END IF;
+		END $$;`,
+
+		// Rendre account_id NOT NULL après ajout
+		`DO $$ 
+		BEGIN 
+			-- Mettre à jour les enregistrements existants avec un compte par défaut si nécessaire
+			-- Cette partie devrait être adaptée selon la logique métier
+			IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'saving_goals' AND column_name = 'account_id') THEN
+				-- Optionnel: définir account_id NOT NULL après avoir défini des valeurs par défaut
+				-- ALTER TABLE saving_goals ALTER COLUMN account_id SET NOT NULL;
+				NULL; -- Pour l'instant, on garde account_id optionnel
+			END IF;
+		END $$;`,
+
+		// Mettre à jour la contrainte CHECK pour frequency
+		`DO $$ 
+		BEGIN 
+			-- Supprimer l'ancienne contrainte si elle existe
+			IF EXISTS (SELECT 1 FROM information_schema.check_constraints WHERE constraint_name = 'saving_goals_frequency_check') THEN
+				ALTER TABLE saving_goals DROP CONSTRAINT saving_goals_frequency_check;
+			END IF;
+			
+			-- Ajouter la nouvelle contrainte avec tous les types
+			ALTER TABLE saving_goals ADD CONSTRAINT saving_goals_frequency_check CHECK (frequency IN ('weekly', 'monthly', 'yearly', 'cron'));
+		END $$;`,
+	}
+
+	// Exécuter les migrations
+	for _, query := range migrationQueries {
+		_, err := db.Exec(query)
+		if err != nil {
+			loggerInstance.Error("Erreur mise à jour table saving_goals", logger.Error(err))
+			return err
+		}
+	}
+
+	// Créer les nouveaux index
+	indexQueries := []string{
+		`CREATE INDEX IF NOT EXISTS idx_saving_goals_account_id ON saving_goals(account_id);`,
+	}
+
+	for _, query := range indexQueries {
+		_, err := db.Exec(query)
+		if err != nil {
+			loggerInstance.Error("Erreur création index saving_goals", logger.Error(err))
+			return err
+		}
+	}
+
+	loggerInstance.Info("Table saving_goals mise à jour")
+	return nil
+}
+
+// updateBudgetsTable met à jour la table budgets pour correspondre à la nouvelle entité
+func updateBudgetsTable(db *pg.DB, loggerInstance logger.Logger) error {
+	migrationQueries := []string{
+		// Ajouter la colonne name si elle n'existe pas
+		`DO $$ 
+		BEGIN 
+			IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'budgets' AND column_name = 'name') THEN
+				ALTER TABLE budgets ADD COLUMN name VARCHAR(255);
+			END IF;
+		END $$;`,
+
+		// Ajouter la colonne period si elle n'existe pas
+		`DO $$ 
+		BEGIN 
+			IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'budgets' AND column_name = 'period') THEN
+				ALTER TABLE budgets ADD COLUMN period VARCHAR(20) CHECK (period IN ('monthly', 'yearly', 'weekly', 'daily'));
+			END IF;
+		END $$;`,
+
+		// Supprimer les anciennes colonnes month et year et les contraintes associées
+		`DO $$ 
+		BEGIN 
+			-- Supprimer l'ancienne contrainte unique
+			IF EXISTS (SELECT 1 FROM information_schema.table_constraints WHERE constraint_name LIKE '%budgets%' AND constraint_type = 'UNIQUE') THEN
+				ALTER TABLE budgets DROP CONSTRAINT IF EXISTS budgets_user_id_category_id_month_year_key;
+			END IF;
+			
+			-- Supprimer les anciennes colonnes
+			IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'budgets' AND column_name = 'month') THEN
+				ALTER TABLE budgets DROP COLUMN month;
+			END IF;
+			
+			IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'budgets' AND column_name = 'year') THEN
+				ALTER TABLE budgets DROP COLUMN year;
+			END IF;
+		END $$;`,
+
+		// Supprimer l'ancien index
+		`DROP INDEX IF EXISTS idx_budgets_month_year;`,
+	}
+
+	// Exécuter les migrations
+	for _, query := range migrationQueries {
+		_, err := db.Exec(query)
+		if err != nil {
+			loggerInstance.Error("Erreur mise à jour table budgets", logger.Error(err))
+			return err
+		}
+	}
+
+	// Créer les nouveaux index
+	indexQueries := []string{
+		`CREATE INDEX IF NOT EXISTS idx_budgets_period ON budgets(period);`,
+		`CREATE INDEX IF NOT EXISTS idx_budgets_name ON budgets(name);`,
+	}
+
+	for _, query := range indexQueries {
+		_, err := db.Exec(query)
+		if err != nil {
+			loggerInstance.Error("Erreur création index budgets", logger.Error(err))
+			return err
+		}
+	}
+
+	loggerInstance.Info("Table budgets mise à jour")
 	return nil
 }

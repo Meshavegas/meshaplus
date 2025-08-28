@@ -23,6 +23,7 @@ func SetupRoutes(
 	savingGoalHandler *handler.SavingGoalHandler,
 	categoryHandler *handler.CategoryHandler,
 	preferencesHandler *handler.PreferencesHandler,
+	financeDashboardHandler *handler.FinanceDashboardHandler,
 	logger logger.Logger,
 ) {
 	// Routes pour la documentation Swagger (publiques) - à la racine
@@ -53,6 +54,9 @@ func SetupRoutes(
 
 		// Routes pour les préférences utilisateur (protégées)
 		SetupPreferencesRoutes(r, preferencesHandler, authMiddleware)
+
+		// Routes pour le tableau de bord financier (protégées)
+		SetupFinanceRoutes(r, financeDashboardHandler, authMiddleware)
 
 		// TODO: Ajouter d'autres routes selon les besoins
 		// SetupUserRoutes(r, userHandler, authMiddleware)

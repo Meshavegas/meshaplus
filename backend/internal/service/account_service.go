@@ -13,15 +13,24 @@ import (
 
 // AccountService gère la logique métier des comptes bancaires
 type AccountService struct {
-	accountRepo repository.AccountRepository
-	logger      logger.Logger
+	accountRepo     repository.AccountRepository
+	logger          logger.Logger
+	transactionRepo repository.TransactionRepository
+	savingGoalRepo  repository.SavingGoalRepository
 }
 
 // NewAccountService crée une nouvelle instance de AccountService
-func NewAccountService(accountRepo repository.AccountRepository, logger logger.Logger) *AccountService {
+func NewAccountService(
+	accountRepo repository.AccountRepository,
+	transactionRepo repository.TransactionRepository,
+	savingGoalRepo repository.SavingGoalRepository,
+	logger logger.Logger,
+) *AccountService {
 	return &AccountService{
-		accountRepo: accountRepo,
-		logger:      logger,
+		accountRepo:     accountRepo,
+		transactionRepo: transactionRepo,
+		savingGoalRepo:  savingGoalRepo,
+		logger:          logger,
 	}
 }
 
@@ -42,13 +51,16 @@ func (s *AccountService) CreateAccount(ctx context.Context, userID uuid.UUID, re
 
 	// Création du compte
 	account := &entity.Account{
-		UserID:    userID,
-		Name:      req.Name,
-		Type:      req.Type,
-		Balance:   req.Balance,
-		Currency:  req.Currency,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		UserID:        userID,
+		Name:          req.Name,
+		Type:          req.Type,
+		Icon:          req.Icon,
+		AccountNumber: req.AccountNumber,
+		Color:         req.Color,
+		Balance:       req.Balance,
+		Currency:      req.Currency,
+		CreatedAt:     time.Now(),
+		UpdatedAt:     time.Now(),
 	}
 
 	if err := s.accountRepo.Create(ctx, account); err != nil {
@@ -223,4 +235,70 @@ func (s *AccountService) GetAccountBalance(ctx context.Context, userID uuid.UUID
 	}
 
 	return account.Balance, nil
+}
+
+// GetAccountsByUserID récupère tous les comptes d'un utilisateur
+func (s *AccountService) GetAccountsByUserID(ctx context.Context, userID uuid.UUID) ([]*entity.Account, error) {
+	accounts, err := s.accountRepo.GetByUserID(ctx, userID)
+	if err != nil {
+		s.logger.Error("Erreur récupération comptes utilisateur", logger.Error(err))
+		return nil, fmt.Errorf("erreur récupération comptes: %w", err)
+	}
+
+	return accounts, nil
+}
+
+// check and update account balance
+func (s *AccountService) CheckAndUpdateAccountBalance(ctx context.Context, userID uuid.UUID, accountID uuid.UUID) (*entity.Account, error) {
+
+	account, err := s.accountRepo.GetByID(ctx, accountID)
+	if err != nil {
+		s.logger.Error("Erreur récupération compte", logger.Error(err))
+		return nil, fmt.Errorf("erreur récupération compte: %w", err)
+	}
+
+	transaction, err := s.transactionRepo.GetAllTransactionsByUserIDAndAccountID(ctx, userID, accountID)
+	if err != nil {
+		s.logger.Error("Erreur récupération transactions", logger.Error(err))
+		return nil, fmt.Errorf("erreur récupération transactions: %w", err)
+	}
+	if len(transaction) == 0 {
+		s.logger.Info("Aucune transaction trouvée", logger.String("account_id", accountID.String()))
+		return account, nil
+	}
+
+	savingGoal, err := s.savingGoalRepo.GetAllSavingGoalsByUserIDAndAccountID(ctx, userID, accountID)
+	if err != nil {
+		s.logger.Error("Erreur récupération transactions", logger.Error(err))
+		return nil, fmt.Errorf("erreur récupération transactions: %w", err)
+	}
+	// sum all transactions amount
+	totalAmount := 0.0
+	for _, t := range transaction {
+		if t.Type == "income" {
+			totalAmount += t.Amount
+		} else {
+			totalAmount -= t.Amount
+		}
+	}
+	// sum all saving goals amount
+	for _, v := range savingGoal {
+		transactionBySavingGoal, err := s.transactionRepo.GetAllTransactionsBySavingGoalID(ctx, userID, v.ID)
+		for _, t := range transactionBySavingGoal {
+			totalAmount += t.Amount
+		}
+		if err != nil {
+			s.logger.Error("Erreur récupération transactions par objectif d'épargne", logger.Error(err))
+			return nil, fmt.Errorf("erreur récupération transactions par objectif d'épargne: %w", err)
+		}
+	}
+	// update account balance
+	account.Balance = totalAmount
+	if err := s.accountRepo.Update(ctx, account); err != nil {
+		s.logger.Error("Erreur mise à jour compte", logger.Error(err))
+		return nil, fmt.Errorf("erreur mise à jour compte: %w", err)
+	}
+
+	return account, nil
+
 }

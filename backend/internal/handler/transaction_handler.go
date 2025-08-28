@@ -50,6 +50,22 @@ func (h *TransactionHandler) CreateTransaction(w http.ResponseWriter, r *http.Re
 	}
 
 	var req entity.CreateTransactionRequest
+	if req.Type == "transfer" {
+		if req.AccountID == nil {
+			response.Error(w, http.StatusBadRequest, "Account ID is required", nil)
+			return
+		}
+		if req.ToAccountID == nil {
+			response.Error(w, http.StatusBadRequest, "To Account ID is required", nil)
+			return
+		}
+	}
+	if req.Type == "saving" {
+		if req.SavingGoalID == nil {
+			response.Error(w, http.StatusBadRequest, "Saving Goal ID is required", nil)
+			return
+		}
+	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		h.logger.Warn("Erreur décodage JSON", logger.Error(err))
 		response.Error(w, http.StatusBadRequest, "Données JSON invalides", err)

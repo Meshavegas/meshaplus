@@ -30,6 +30,7 @@ type TransactionService struct {
 	categoryRepo    repository.CategoryRepository
 	aiService       *ai.AIService
 	logger          logger.Logger
+	accountService  *AccountService
 }
 
 // NewTransactionService crée une nouvelle instance de TransactionService
@@ -38,6 +39,7 @@ func NewTransactionService(
 	accountRepo repository.AccountRepository,
 	categoryRepo repository.CategoryRepository,
 	aiService *ai.AIService,
+	accountService *AccountService,
 	logger logger.Logger,
 ) *TransactionService {
 	return &TransactionService{
@@ -45,6 +47,7 @@ func NewTransactionService(
 		accountRepo:     accountRepo,
 		categoryRepo:    categoryRepo,
 		aiService:       aiService,
+		accountService:  accountService,
 		logger:          logger,
 	}
 }
@@ -56,17 +59,29 @@ func (s *TransactionService) CreateTransaction(ctx context.Context, userID uuid.
 		return nil, fmt.Errorf("le montant doit être positif")
 	}
 
-	if req.Type != "income" && req.Type != "expense" {
-		return nil, fmt.Errorf("le type doit être 'income' ou 'expense'")
+	validTypes := []string{"income", "expense", "transfer", "saving", "refund"}
+	isValidType := false
+	for _, validType := range validTypes {
+		if req.Type == validType {
+			isValidType = true
+			break
+		}
+	}
+	if !isValidType {
+		return nil, fmt.Errorf("le type doit être l'un des suivants: %v", validTypes)
 	}
 
-	// Vérifier que le compte existe et appartient à l'utilisateur
-	account, err := s.accountRepo.GetByID(ctx, req.AccountID)
-	if err != nil {
-		return nil, fmt.Errorf("compte non trouvé")
-	}
-	if account.UserID != userID {
-		return nil, fmt.Errorf("accès non autorisé au compte")
+	// Vérifier que le compte existe et appartient à l'utilisateur (si spécifié)
+	if req.AccountID != nil {
+		account, err := s.accountRepo.GetByID(ctx, *req.AccountID)
+
+		s.logger.Info("Compte récupéré", logger.String("account_id", account.ID.String()), logger.String("user_id", userID.String()), logger.Float64("account_name", account.Balance))
+		if err != nil {
+			return nil, fmt.Errorf("compte non trouvé")
+		}
+		if account.UserID != userID {
+			return nil, fmt.Errorf("accès non autorisé au compte")
+		}
 	}
 
 	// Gestion de la catégorie
@@ -85,11 +100,31 @@ func (s *TransactionService) CreateTransaction(ctx context.Context, userID uuid.
 		if err != nil {
 			s.logger.Warn("Erreur catégorisation automatique, transaction créée sans catégorie", logger.Error(err))
 		} else {
+			// Log de debug pour voir la réponse de l'IA
+			s.logger.Info("Réponse IA catégorisation",
+				logger.String("category_name", categoryResponse.CategoryName),
+				logger.String("icon", categoryResponse.Icon),
+				logger.String("color", categoryResponse.Color),
+				logger.Bool("is_new", categoryResponse.IsNewCategory),
+				logger.Int("confidence", categoryResponse.Confidence))
 			// Créer la nouvelle catégorie dans la base de données
+			// Utiliser les valeurs de l'IA ou des valeurs par défaut si elles sont vides
+			icon := categoryResponse.Icon
+			if icon == "" {
+				icon = "md:category" // Icône par défaut
+			}
+
+			color := categoryResponse.Color
+			if color == "" {
+				color = "#6C5CE7" // Couleur par défaut
+			}
+
 			newCategory := &entity.Category{
 				UserID: userID,
 				Name:   categoryResponse.CategoryName,
 				Type:   categoryType,
+				Icon:   icon,
+				Color:  color,
 			}
 
 			if err := s.categoryRepo.Create(ctx, newCategory); err != nil {
@@ -105,7 +140,7 @@ func (s *TransactionService) CreateTransaction(ctx context.Context, userID uuid.
 		}
 	} else if categoryID != nil {
 		// Vérifier que la catégorie existe et appartient à l'utilisateur
-		category, err := s.categoryRepo.GetByID(ctx, *categoryID)
+		category, err := s.categoryRepo.GetByID(ctx, userID, *categoryID)
 		if err != nil {
 			return nil, fmt.Errorf("catégorie non trouvée")
 		}
@@ -114,23 +149,112 @@ func (s *TransactionService) CreateTransaction(ctx context.Context, userID uuid.
 		}
 	}
 
+	if req.Type == "transfer" {
+		account, err := s.accountRepo.GetByID(ctx, *req.AccountID)
+		if err != nil {
+			s.logger.Error("Erreur récupération compte", logger.Error(err))
+			return nil, fmt.Errorf("erreur récupération compte: %w", err)
+		}
+
+		//expense accountID transaction
+		transaction := &entity.Transaction{
+			ID:          uuid.New(),
+			UserID:      userID,
+			AccountID:   req.AccountID,
+			Type:        "expense",
+			Amount:      req.Amount,
+			Description: req.Description,
+			Date:        req.Date,
+			Recurring:   false,
+			CreatedAt:   time.Now(),
+			UpdatedAt:   time.Now(),
+		}
+
+		if err := s.transactionRepo.Create(ctx, transaction); err != nil {
+			s.logger.Error("Erreur création transaction", logger.Error(err))
+			return nil, fmt.Errorf("erreur création transaction: %w", err)
+		}
+
+		// Mettre à jour la balance du compte source (expense)
+		account.Balance -= req.Amount
+		if err := s.accountRepo.Update(ctx, account); err != nil {
+			s.logger.Error("Erreur mise à jour balance du compte source", logger.Error(err))
+		}
+
+		//income toAccountID transaction
+		toAccount, err := s.accountRepo.GetByID(ctx, *req.ToAccountID)
+		if err != nil {
+			s.logger.Error("Erreur récupération compte destination", logger.Error(err))
+			return nil, fmt.Errorf("erreur récupération compte destination: %w", err)
+		}
+
+		transaction2 := &entity.Transaction{
+			ID:          uuid.New(),
+			UserID:      userID,
+			AccountID:   req.ToAccountID,
+			Type:        "income",
+			Amount:      req.Amount,
+			Description: req.Description,
+			Date:        req.Date,
+			Recurring:   false,
+			CreatedAt:   time.Now(),
+			UpdatedAt:   time.Now(),
+		}
+
+		if err := s.transactionRepo.Create(ctx, transaction2); err != nil {
+			s.logger.Error("Erreur création transaction destination", logger.Error(err))
+			return nil, fmt.Errorf("erreur création transaction destination: %w", err)
+		}
+
+		// Mettre à jour la balance du compte destination (income)
+		toAccount.Balance += req.Amount
+		if err := s.accountRepo.Update(ctx, toAccount); err != nil {
+			s.logger.Error("Erreur mise à jour balance du compte destination", logger.Error(err))
+		}
+
+		return transaction, nil
+	}
+
 	// Création de la transaction
+	account, err := s.accountRepo.GetByID(ctx, *req.AccountID)
+	if err != nil {
+		s.logger.Error("Erreur récupération compte", logger.Error(err))
+		return nil, fmt.Errorf("erreur récupération compte: %w", err)
+	}
+
 	transaction := &entity.Transaction{
-		UserID:      userID,
-		AccountID:   req.AccountID,
-		CategoryID:  categoryID,
-		Type:        req.Type,
-		Amount:      req.Amount,
-		Description: req.Description,
-		Date:        req.Date,
-		Recurring:   req.Recurring,
-		CreatedAt:   time.Now(),
-		UpdatedAt:   time.Now(),
+		ID:           uuid.New(),
+		UserID:       userID,
+		AccountID:    req.AccountID,
+		CategoryID:   categoryID,
+		Type:         req.Type,
+		SavingGoalID: req.SavingGoalID,
+		Amount:       req.Amount,
+		Description:  req.Description,
+		Date:         req.Date,
+		Recurring:    req.Recurring,
+		CreatedAt:    time.Now(),
+		UpdatedAt:    time.Now(),
 	}
 
 	if err := s.transactionRepo.Create(ctx, transaction); err != nil {
 		s.logger.Error("Erreur création transaction", logger.Error(err))
 		return nil, fmt.Errorf("erreur création transaction: %w", err)
+	}
+
+	// Mettre à jour la balance du compte selon le type de transaction
+	switch req.Type {
+	case "income", "refund":
+		account.Balance += req.Amount
+	case "expense", "saving":
+		account.Balance -= req.Amount
+	}
+
+	// Sauvegarder la mise à jour du compte
+	if err := s.accountRepo.Update(ctx, account); err != nil {
+		s.logger.Error("Erreur mise à jour balance du compte", logger.Error(err))
+		// Note: On ne fait pas échouer la création de transaction si la mise à jour de balance échoue
+		// Mais on log l'erreur pour le debugging
 	}
 
 	s.logger.Info("Transaction créée avec succès",
@@ -249,7 +373,7 @@ func (s *TransactionService) UpdateTransaction(ctx context.Context, userID uuid.
 		if account.UserID != userID {
 			return nil, fmt.Errorf("accès non autorisé au compte")
 		}
-		transaction.AccountID = *req.AccountID
+		transaction.AccountID = req.AccountID
 	}
 
 	transaction.UpdatedAt = time.Now()
@@ -334,4 +458,37 @@ func (s *TransactionService) GetTransactionStats(ctx context.Context, userID uui
 	}
 
 	return stats, nil
+}
+
+// GetTransactionsByDateRange récupère les transactions dans une plage de dates
+func (s *TransactionService) GetTransactionsByDateRange(ctx context.Context, userID uuid.UUID, startDate, endDate string) ([]*entity.Transaction, error) {
+	transactions, err := s.transactionRepo.GetByDateRange(ctx, userID, startDate, endDate)
+	if err != nil {
+		s.logger.Error("Erreur récupération transactions par plage de dates", logger.Error(err))
+		return nil, fmt.Errorf("erreur récupération transactions: %w", err)
+	}
+
+	return transactions, nil
+}
+
+// GetTransactionsByUserID récupère toutes les transactions d'un utilisateur
+func (s *TransactionService) GetTransactionsByUserID(ctx context.Context, userID uuid.UUID) ([]*entity.Transaction, error) {
+	transactions, err := s.transactionRepo.GetByUserID(ctx, userID)
+	if err != nil {
+		s.logger.Error("Erreur récupération transactions utilisateur", logger.Error(err))
+		return nil, fmt.Errorf("erreur récupération transactions: %w", err)
+	}
+
+	return transactions, nil
+}
+
+// GetTransactionsByAccountID récupère toutes les transactions d'un compte spécifique avec les détails de la catégorie
+func (s *TransactionService) GetTransactionsByAccountID(ctx context.Context, userID uuid.UUID, accountID uuid.UUID) ([]*entity.TransactionWithDetails, error) {
+	transactions, err := s.transactionRepo.GetByAccountIDWithCategoryDetails(ctx, userID, &accountID)
+	if err != nil {
+		s.logger.Error("Erreur récupération transactions par compte", logger.Error(err))
+		return nil, fmt.Errorf("erreur récupération transactions: %w", err)
+	}
+
+	return transactions, nil
 }
