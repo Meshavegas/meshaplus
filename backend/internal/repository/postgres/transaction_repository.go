@@ -125,7 +125,7 @@ func (r *TransactionRepository) GetTransfers(ctx context.Context, userID uuid.UU
 // GetByDateRange récupère les transactions dans une plage de dates
 func (r *TransactionRepository) GetByDateRange(ctx context.Context, userID uuid.UUID, startDate, endDate string) ([]*entity.Transaction, error) {
 	var transactions []*entity.Transaction
-	err := r.db.WithContext(ctx).Model(&transactions).Where("user_id = ? AND date >= ? AND date <= ?", userID, startDate, endDate).Order("date DESC").Select()
+	err := r.db.WithContext(ctx).Model(&transactions).Relation("Category").Relation("Account").Where("transaction.user_id = ? AND transaction.date >= ? AND transaction.date <= ?", userID, startDate, endDate).Order("transaction.date DESC").Select()
 	if err != nil {
 		return nil, fmt.Errorf("erreur récupération transactions par plage de dates: %w", err)
 	}
@@ -173,80 +173,28 @@ func (r *TransactionRepository) GetAllTransactionsBySavingGoalID(ctx context.Con
 }
 
 // GetByAccountIDWithCategoryDetails récupère les transactions d'un compte avec les détails complets de la catégorie
-func (r *TransactionRepository) GetByAccountIDWithCategoryDetails(ctx context.Context, userID uuid.UUID, accountID *uuid.UUID) ([]*entity.TransactionWithDetails, error) {
+func (r *TransactionRepository) GetByAccountIDWithCategoryDetails(ctx context.Context, userID uuid.UUID, accountID *uuid.UUID) ([]*entity.Transaction, error) {
 	// D'abord, récupérer les transactions
 	var transactions []*entity.Transaction
-	query := r.db.WithContext(ctx).Model(&transactions).Where("user_id = ?", userID)
+	query := r.db.WithContext(ctx).Model(&transactions).Relation("Category").Relation("SavingGoal").Where("transaction.user_id = ?", userID)
 
 	if accountID != nil {
-		query = query.Where("account_id = ?", *accountID)
+		query = query.Where("transaction.account_id = ?", *accountID)
 	} else {
-		query = query.Where("account_id IS NULL")
+		query = query.Where("transaction.account_id IS NULL")
 	}
 
-	err := query.Order("date DESC").Select()
+	err := query.Order("transaction.created_at DESC").Select()
 	if err != nil {
 		return nil, fmt.Errorf("erreur récupération transactions: %w", err)
 	}
-
-	// Ensuite, récupérer les catégories pour ces transactions
-	var categoryIDs []uuid.UUID
 	for _, tx := range transactions {
-		if tx.CategoryID != nil {
-			categoryIDs = append(categoryIDs, *tx.CategoryID)
+		if tx.Category != nil {
+			fmt.Printf("Transaction ID: %s, Amount: %.2f, Category: %s\n", tx.ID, tx.Amount, tx.Category.Name)
+		} else {
+			fmt.Printf("Transaction ID: %s, Amount: %.2f, Category: <nil>\n", tx.ID, tx.Amount)
 		}
 	}
 
-	// Récupérer toutes les catégories en une seule requête avec SQL brut
-	var categories []*entity.Category
-	if len(categoryIDs) > 0 {
-		query := `
-			SELECT id, user_id, name, type, parent_id, icon, color, created_at
-			FROM categories 
-			WHERE id = ANY(?)
-		`
-
-		_, err = r.db.WithContext(ctx).Query(&categories, query, pg.Array(categoryIDs))
-		if err != nil {
-			return nil, fmt.Errorf("erreur récupération catégories: %w", err)
-		}
-
-	}
-
-	// Créer un map pour un accès rapide aux catégories
-	categoryMap := make(map[uuid.UUID]*entity.Category)
-	for _, cat := range categories {
-		categoryMap[cat.ID] = cat
-	}
-
-	// Construire le résultat final
-	var result []*entity.TransactionWithDetails
-	for _, tx := range transactions {
-		txWithDetails := &entity.TransactionWithDetails{
-			ID:           tx.ID,
-			UserID:       tx.UserID,
-			AccountID:    tx.AccountID,
-			CategoryID:   tx.CategoryID,
-			Type:         tx.Type,
-			ToAccountID:  tx.ToAccountID,
-			SavingGoalID: tx.SavingGoalID,
-			Amount:       tx.Amount,
-			Description:  tx.Description,
-			Date:         tx.Date,
-			Recurring:    tx.Recurring,
-			CreatedAt:    tx.CreatedAt,
-			UpdatedAt:    tx.UpdatedAt,
-		}
-
-		// Ajouter les détails de la catégorie si elle existe
-		if tx.CategoryID != nil {
-			if category, exists := categoryMap[*tx.CategoryID]; exists {
-				txWithDetails.Category = category
-			}
-		}
-
-		result = append(result, txWithDetails)
-	}
-
-	return result, nil
+	return transactions, nil
 }

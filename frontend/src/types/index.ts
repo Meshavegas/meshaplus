@@ -96,7 +96,7 @@ export interface ApiResponse<T> {
 
 export interface CreateTransactionRequest {
   account_id: string
-  categoryId?: string
+  category_id?: string
   type: 'income' | 'expense'
   amount: number
   description?: string

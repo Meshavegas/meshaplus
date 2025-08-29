@@ -15,6 +15,7 @@ const accountApi = {
   getAccount: async (id: string): Promise<AccountDetails> => {
     try {
       const response = await apiHelpers.get<{data: AccountDetails}>(`/accounts/${id}/details`)
+      // console.log(JSON.stringify(response.data, null, 2), "response.data account")
       return response.data
     } catch (error) {
       console.error('Get account error:', error)

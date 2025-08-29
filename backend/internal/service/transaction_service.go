@@ -67,6 +67,7 @@ func (s *TransactionService) CreateTransaction(ctx context.Context, userID uuid.
 			break
 		}
 	}
+	s.logger.Info("req", logger.Any("req", req))
 	if !isValidType {
 		return nil, fmt.Errorf("le type doit être l'un des suivants: %v", validTypes)
 	}
@@ -86,6 +87,7 @@ func (s *TransactionService) CreateTransaction(ctx context.Context, userID uuid.
 
 	// Gestion de la catégorie
 	var categoryID *uuid.UUID = req.CategoryID
+	// s.logger.Info("categoryID avant", logger.String("categoryID", req.CategoryID))
 
 	// Si aucune catégorie n'est spécifiée, utiliser l'IA pour en créer une automatiquement
 	if categoryID == nil && req.Description != "" {
@@ -149,6 +151,8 @@ func (s *TransactionService) CreateTransaction(ctx context.Context, userID uuid.
 		}
 	}
 
+	s.logger.Info("categoryID", logger.String("categoryID", categoryID.String()))
+
 	if req.Type == "transfer" {
 		account, err := s.accountRepo.GetByID(ctx, *req.AccountID)
 		if err != nil {
@@ -160,6 +164,7 @@ func (s *TransactionService) CreateTransaction(ctx context.Context, userID uuid.
 		transaction := &entity.Transaction{
 			ID:          uuid.New(),
 			UserID:      userID,
+			CategoryID:  categoryID,
 			AccountID:   req.AccountID,
 			Type:        "expense",
 			Amount:      req.Amount,
@@ -192,6 +197,7 @@ func (s *TransactionService) CreateTransaction(ctx context.Context, userID uuid.
 			ID:          uuid.New(),
 			UserID:      userID,
 			AccountID:   req.ToAccountID,
+			CategoryID:  categoryID,
 			Type:        "income",
 			Amount:      req.Amount,
 			Description: req.Description,
@@ -483,7 +489,7 @@ func (s *TransactionService) GetTransactionsByUserID(ctx context.Context, userID
 }
 
 // GetTransactionsByAccountID récupère toutes les transactions d'un compte spécifique avec les détails de la catégorie
-func (s *TransactionService) GetTransactionsByAccountID(ctx context.Context, userID uuid.UUID, accountID uuid.UUID) ([]*entity.TransactionWithDetails, error) {
+func (s *TransactionService) GetTransactionsByAccountID(ctx context.Context, userID uuid.UUID, accountID uuid.UUID) ([]*entity.Transaction, error) {
 	transactions, err := s.transactionRepo.GetByAccountIDWithCategoryDetails(ctx, userID, &accountID)
 	if err != nil {
 		s.logger.Error("Erreur récupération transactions par compte", logger.Error(err))

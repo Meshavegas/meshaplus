@@ -45,7 +45,7 @@ func (r *BudgetRepository) GetByID(ctx context.Context, id uuid.UUID) (*entity.B
 // GetByUserID récupère tous les budgets d'un utilisateur
 func (r *BudgetRepository) GetByUserID(ctx context.Context, userID uuid.UUID) ([]*entity.Budget, error) {
 	var budgets []*entity.Budget
-	err := r.db.WithContext(ctx).Model(&budgets).Where("user_id = ?", userID).Order("created_at DESC").Select()
+	err := r.db.WithContext(ctx).Model(&budgets).Relation("Category").Where("budget.user_id = ?", userID).Order("budget.created_at DESC").Select()
 	if err != nil {
 		return nil, fmt.Errorf("erreur récupération budgets utilisateur: %w", err)
 	}

@@ -7,10 +7,14 @@ import financeApi from '@/src/services/finance';
 import Icon from '@/src/components/Icons';
 import { AccountForm } from '@/src/components/forms/AccountFrom';
 import { TransactionForm } from '@/src/components/forms/TransactionForm';
+import BudgetForm from '@/src/components/forms/BudgetForm';
+import BudgetCard from '@/src/components/BudgetCard';
 import accountApi from '@/src/services/accountService/accountApi';
 import transactionApi from '@/src/services/transactionService/transactionApi';
 import categoryApi from '@/src/services/categoryService/categoryApi';
-import { Category } from '@/src/types';
+import budgetApi from '@/src/services/budgetService/budgetApi';
+import { formatDate } from '@/src/lib/utils'; 
+
 
 export default function Finances() {
   const router = useRouter();
@@ -18,8 +22,10 @@ export default function Finances() {
   const [financeSummary, setFinanceSummary] = useState<FinanceDashboard | null>(null);
   const [showAccountForm, setShowAccountForm] = useState(false);
   const [showTransactionForm, setShowTransactionForm] = useState(false);
+  const [showBudgetForm, setShowBudgetForm] = useState(false);
   const [accounts, setAccounts] = useState<any[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+
 
   useEffect(() => {
     const loadData = async () => {
@@ -27,7 +33,8 @@ export default function Finances() {
         const [financeData, accountsData, categoriesData] = await Promise.all([
           financeApi.getFinancialSummary(),
           accountApi.getAccounts(),
-          categoryApi.getCategories()
+          categoryApi.getCategories(),
+          
         ]);
 
         setFinanceSummary(financeData);
@@ -85,6 +92,51 @@ export default function Finances() {
     }
   };
 
+  // Handle budget creation
+  const handleCreateBudget = async (budgetData: any) => {
+    try {
+      await budgetApi.createBudget(budgetData);
+
+      // Refresh budgets
+      // const updatedBudgets = await budgetApi.getBudgetsWithStatus();
+      // setBudgets(updatedBudgets);
+
+      Alert.alert('Succès', 'Budget créé avec succès');
+    } catch (error) {
+      Alert.alert('Erreur', 'Erreur lors de la création du budget');
+    }
+  };
+
+  // Handle budget update
+  const handleUpdateBudget = async (id: string, budgetData: any) => {
+    try {
+      await budgetApi.updateBudget(id, budgetData);
+
+      // Refresh budgets
+        // const updatedBudgets = await budgetApi.getBudgetsWithStatus();
+        // setBudgets(updatedBudgets);
+
+      Alert.alert('Succès', 'Budget mis à jour avec succès');
+    } catch (error) {
+      Alert.alert('Erreur', 'Erreur lors de la mise à jour du budget');
+    }
+  };
+
+  // Handle budget deletion
+  const handleDeleteBudget = async (id: string) => {
+    try {
+      await budgetApi.deleteBudget(id);
+
+      // Refresh budgets
+      // const updatedBudgets = await budgetApi.getBudgetsWithStatus();
+      // setBudgets(updatedBudgets);
+
+      Alert.alert('Succès', 'Budget supprimé avec succès');
+    } catch (error) {
+      Alert.alert('Erreur', 'Erreur lors de la suppression du budget');
+    }
+  };
+
   // Accounts Section
   const renderAccountsSection = () => (
     <View className="mb-8">
@@ -124,96 +176,60 @@ export default function Finances() {
       />
       <View className="flex gap-2">
         {/* Transaction 1 */}
-        <TouchableOpacity
-          className="bg-white p-4 rounded-lg shadow-sm"
-          onPress={() => setExpandedTransaction(expandedTransaction === '1' ? null : '1')}
-        >
-          <View className="flex-row justify-between items-center">
-            <View className="flex-row items-center flex-1">
-              <View className="w-10 h-10 bg-red-100 rounded-full items-center justify-center mr-3">
-                <Ionicons name="restaurant" size={18} color="#dc2626" />
-              </View>
-              <View className="flex-1">
-                <Text className="text-gray-900 font-medium">Supermarché</Text>
-                <Text className="text-sm text-gray-500">Alimentation • Aujourd'hui</Text>
-              </View>
-            </View>
-            <View className="items-end">
-              <Text className="text-red-600 font-semibold">-$45.20</Text>
-              <Ionicons
-                name={expandedTransaction === '1' ? "chevron-up" : "chevron-down"}
-                size={16}
-                color="#9ca3af"
-              />
-            </View>
-          </View>
-          {expandedTransaction === '1' && (
-            <View className="mt-4 pt-4 border-t border-gray-100">
-              <View className="space-y-2">
-                <View className="flex-row justify-between">
-                  <Text className="text-gray-600">Compte:</Text>
-                  <Text className="text-gray-900">Compte Courant</Text>
+        {
+          financeSummary?.current_month_transactions?.slice(0, 5).map((transaction) => (
+            <TouchableOpacity
+              className="bg-white p-4 rounded-lg shadow-sm"
+              key={transaction.id}
+              onPress={() => setExpandedTransaction(transaction.id === expandedTransaction ? null : transaction.id)}
+            >
+              <View className="flex-row justify-between items-center">
+                <View className="flex-row items-center flex-1">
+                  <View className="w-10 h-10 rounded-full items-center justify-center mr-3"
+                    style={{ backgroundColor: `${transaction.category?.color ?? '#dc2626'}60` }}
+                  >
+                    <Icon name={transaction.category?.icon ?? 'restaurant'} size={18} color={transaction.category?.color ?? '#dc2626'} />
+                  </View>
+                  <View className="flex-1">
+                    <Text className="text-gray-900 font-medium">{transaction.description}</Text>
+                    <Text className="text-sm text-gray-500">{transaction.category?.name} • {formatDate(transaction.created_at)}</Text>
+                  </View>
                 </View>
-                <View className="flex-row justify-between">
-                  <Text className="text-gray-600">Date:</Text>
-                  <Text className="text-gray-900">15 Nov 2023, 14:30</Text>
-                </View>
-                <View className="flex-row justify-between">
-                  <Text className="text-gray-600">Récurrent:</Text>
-                  <Text className="text-gray-900">Non</Text>
-                </View>
-                <View className="flex-row justify-between">
-                  <Text className="text-gray-600">Description:</Text>
-                  <Text className="text-gray-900">Courses hebdomadaires</Text>
+                <View className="items-end">
+                  <Text className="text-red-600 font-semibold">${transaction.amount}</Text>
+                  <Ionicons
+                    name={expandedTransaction === transaction.id ? "chevron-up" : "chevron-down"}
+                    size={16}
+                    color="#9ca3af"
+                  />
                 </View>
               </View>
-            </View>
-          )}
-        </TouchableOpacity>
+              {expandedTransaction === transaction.id && (
+                <View className="mt-4 pt-4 border-t border-gray-100">
+                  <View className="space-y-2">
+                    <View className="flex-row justify-between">
+                      <Text className="text-gray-600">Compte:</Text>
+                      <Text className="text-gray-900">{transaction.account?.name}</Text>
+                    </View>
+                    <View className="flex-row justify-between">
+                      <Text className="text-gray-600">Date:</Text>
+                      <Text className="text-gray-900">{formatDate(transaction.created_at)}</Text>
+                    </View>
+                    <View className="flex-row justify-between">
+                      <Text className="text-gray-600">Récurrent:</Text>
+                      <Text className="text-gray-900">Non</Text>
+                    </View>
+                    <View className="flex-row justify-between">
+                      <Text className="text-gray-600">Description:</Text>
+                      <Text className="text-gray-900">{transaction.description}</Text>
+                    </View>
+                  </View>
+                </View>
+              )}
+            </TouchableOpacity>
+          ))
+        }
 
-        {/* Transaction 2 */}
-        <TouchableOpacity
-          className="bg-white p-4 rounded-lg shadow-sm"
-          onPress={() => setExpandedTransaction(expandedTransaction === '2' ? null : '2')}
-        >
-          <View className="flex-row justify-between items-center">
-            <View className="flex-row items-center flex-1">
-              <View className="w-10 h-10 bg-green-100 rounded-full items-center justify-center mr-3">
-                <Ionicons name="briefcase" size={18} color="#16a34a" />
-              </View>
-              <View className="flex-1">
-                <Text className="text-gray-900 font-medium">Salaire</Text>
-                <Text className="text-sm text-gray-500">Revenus • 1er Nov</Text>
-              </View>
-            </View>
-            <View className="items-end">
-              <Text className="text-green-600 font-semibold">+$2,500</Text>
-              <Ionicons
-                name={expandedTransaction === '2' ? "chevron-up" : "chevron-down"}
-                size={16}
-                color="#9ca3af"
-              />
-            </View>
-          </View>
-          {expandedTransaction === '2' && (
-            <View className="mt-4 pt-4 border-t border-gray-100">
-              <View className="space-y-2">
-                <View className="flex-row justify-between">
-                  <Text className="text-gray-600">Compte:</Text>
-                  <Text className="text-gray-900">Compte Courant</Text>
-                </View>
-                <View className="flex-row justify-between">
-                  <Text className="text-gray-600">Date:</Text>
-                  <Text className="text-gray-900">01 Nov 2023, 09:00</Text>
-                </View>
-                <View className="flex-row justify-between">
-                  <Text className="text-gray-600">Récurrent:</Text>
-                  <Text className="text-gray-900">Mensuel</Text>
-                </View>
-              </View>
-            </View>
-          )}
-        </TouchableOpacity>
       </View>
     </View>
   );
@@ -223,43 +239,48 @@ export default function Finances() {
     <View className="mb-8">
       <SectionHeader
         title="Budgets"
-        onAddPress={() => Alert.alert('Ajouter un budget', 'Fonctionnalité à implémenter')}
+        onAddPress={() => setShowBudgetForm(true)}
       />
-      <View className="flex gap-2">
-        {/* Budget Item 1 */}
-        <View className="bg-white p-4 rounded-lg shadow-sm">
-          <View className="flex-row justify-between items-center mb-2">
-            <View className="flex-row items-center">
-              <View className="w-8 h-8 bg-red-100 rounded-full items-center justify-center mr-3">
-                <Ionicons name="restaurant" size={16} color="#dc2626" />
-              </View>
-              <Text className="text-gray-900 font-medium">Alimentation</Text>
-            </View>
-            <Text className="text-gray-600">$450 / $500</Text>
-          </View>
-          <View className="w-full bg-gray-200 rounded-full h-2">
-            <View className="bg-orange-500 h-2 rounded-full" style={{ width: '90%' }} />
-          </View>
-          <Text className="text-xs text-gray-500 mt-1">90% utilisé</Text>
+      
+      {financeSummary?.budgets_with_status.length === 0 ? (
+        <View className="bg-white p-8 rounded-lg shadow-sm items-center">
+          <Ionicons name="pie-chart-outline" size={48} color="#9ca3af" />
+          <Text className="text-gray-500 mt-2 text-center">Aucun budget configuré</Text>
+          <TouchableOpacity
+            className="mt-4 bg-blue-600 px-4 py-2 rounded-lg"
+            onPress={() => setShowBudgetForm(true)}
+          >
+            <Text className="text-white font-medium">Créer votre premier budget</Text>
+          </TouchableOpacity>
         </View>
-
-        {/* Budget Item 2 */}
-        <View className="bg-white p-4 rounded-lg shadow-sm">
-          <View className="flex-row justify-between items-center mb-2">
-            <View className="flex-row items-center">
-              <View className="w-8 h-8 bg-blue-100 rounded-full items-center justify-center mr-3">
-                <Ionicons name="car" size={16} color="#2563eb" />
-              </View>
-              <Text className="text-gray-900 font-medium">Transport</Text>
-            </View>
-            <Text className="text-gray-600">$280 / $400</Text>
-          </View>
-          <View className="w-full bg-gray-200 rounded-full h-2">
-            <View className="bg-blue-500 h-2 rounded-full" style={{ width: '70%' }} />
-          </View>
-          <Text className="text-xs text-gray-500 mt-1">70% utilisé</Text>
+      ) : (
+        <View className="space-y-2">
+          {financeSummary?.budgets_with_status.map((budget) => (
+            <BudgetCard
+              key={budget.id}
+              budget={budget}
+              onEdit={() => {
+                // TODO: Implement edit functionality
+                Alert.alert('Modifier le budget', 'Fonctionnalité à implémenter');
+              }}
+              onDelete={() => {
+                Alert.alert(
+                  'Supprimer le budget',
+                  `Êtes-vous sûr de vouloir supprimer le budget "${budget.name}" ?`,
+                  [
+                    { text: 'Annuler', style: 'cancel' },
+                    {
+                      text: 'Supprimer',
+                      style: 'destructive',
+                      onPress: () => handleDeleteBudget(budget.id)
+                    }
+                  ]
+                );
+              }}
+            />
+          ))}
         </View>
-      </View>
+      )}
     </View>
   );
 
@@ -465,6 +486,14 @@ export default function Finances() {
         onSubmit={handleCreateTransaction}
         categories={categories}
         accounts={accounts}
+      />
+
+      {/* Budget Form Modal */}
+      <BudgetForm
+        visible={showBudgetForm}
+        onClose={() => setShowBudgetForm(false)}
+        onSubmit={handleCreateBudget}
+        categories={categories}
       />
     </ScrollView>
   );

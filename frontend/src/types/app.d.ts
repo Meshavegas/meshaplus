@@ -52,7 +52,8 @@ interface AccountDetails {
 }
 
 interface AccountTransaction extends Transaction {
-  category: Category
+  category?: Category
+  account?: Account
 }
 
 // Types pour les budgets
@@ -70,4 +71,5 @@ interface Budget {
   percentage_used: number
   remaining_amount: number
   days_remaining: number
+  category?: Category
 }

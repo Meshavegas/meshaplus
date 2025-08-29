@@ -130,21 +130,21 @@ export default function AccountDetail() {
         }).format(amount);
     };
 
-         const formatDate = (date: Date | string | undefined) => {
-         if (!date) return '';
-         
-         const dateObj = typeof date === 'string' ? new Date(date) : date;
-         
-         if (isNaN(dateObj.getTime())) {
-             return 'Date invalide';
-         }
-         
-         return dateObj.toLocaleDateString('fr-FR', {
-             day: 'numeric',
-             month: 'short',
-             year: 'numeric'
-         });
-     };
+    const formatDate = (date: Date | string | undefined) => {
+        if (!date) return '';
+
+        const dateObj = typeof date === 'string' ? new Date(date) : date;
+
+        if (isNaN(dateObj.getTime())) {
+            return 'Date invalide';
+        }
+
+        return dateObj.toLocaleDateString('fr-FR', {
+            day: 'numeric',
+            month: 'short',
+            year: 'numeric'
+        });
+    };
 
     const getTransactionIcon = (category: string) => {
         const categoryMap: { [key: string]: string } = {
@@ -220,24 +220,24 @@ export default function AccountDetail() {
                     </View>
 
                     <View className="flex-row justify-between py-3 border-t border-gray-100">
-                                                 <View className="items-center flex-1">
-                             <Text className="text-lg font-semibold text-green-600">
-                                 {formatCurrency(account.transactions?.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0) || 0)}
-                             </Text>
-                             <Text className="text-xs text-gray-500">Revenus</Text>
-                         </View>
-                         <View className="items-center flex-1">
-                             <Text className="text-lg font-semibold text-red-600">
-                                 {formatCurrency(account.transactions?.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0) || 0)}
-                             </Text>
-                             <Text className="text-xs text-gray-500">Dépenses</Text>
-                         </View>
-                                                 <View className="items-center flex-1">
-                             <Text className="text-lg font-semibold text-gray-900">
-                                 {account.transactions?.length || 0}
-                             </Text>
-                             <Text className="text-xs text-gray-500">Transactions</Text>
-                         </View>
+                        <View className="items-center flex-1">
+                            <Text className="text-lg font-semibold text-green-600">
+                                {formatCurrency(account.transactions?.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0) || 0)}
+                            </Text>
+                            <Text className="text-xs text-gray-500">Revenus</Text>
+                        </View>
+                        <View className="items-center flex-1">
+                            <Text className="text-lg font-semibold text-red-600">
+                                {formatCurrency(account.transactions?.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0) || 0)}
+                            </Text>
+                            <Text className="text-xs text-gray-500">Dépenses</Text>
+                        </View>
+                        <View className="items-center flex-1">
+                            <Text className="text-lg font-semibold text-gray-900">
+                                {account.transactions?.length || 0}
+                            </Text>
+                            <Text className="text-xs text-gray-500">Transactions</Text>
+                        </View>
                     </View>
                 </View>
 
@@ -301,7 +301,7 @@ export default function AccountDetail() {
                             </TouchableOpacity>
                         </View>
 
-                                                 {!account.transactions || account.transactions.length === 0 ? (
+                        {!account.transactions || account.transactions.length === 0 ? (
                             <View className="bg-white p-8 rounded-lg shadow-sm items-center">
                                 <Ionicons name="receipt-outline" size={48} color="#9ca3af" />
                                 <Text className="text-gray-500 mt-2 text-center">Aucune transaction pour le moment</Text>
@@ -313,8 +313,8 @@ export default function AccountDetail() {
                                 </TouchableOpacity>
                             </View>
                         ) : (
-                                                         <View className="gap-2">
-                                 {account.transactions?.map((transaction) => (
+                            <View className="gap-2">
+                                {account.transactions?.map((transaction) => (
                                     <TouchableOpacity
                                         key={transaction.id}
                                         className="bg-white p-4 rounded-lg shadow-sm"
@@ -324,18 +324,18 @@ export default function AccountDetail() {
                                             <View className="flex-row items-center flex-1">
                                                 <View
                                                     className="w-10 h-10 rounded-full items-center justify-center mr-3"
-                                                    style={{ backgroundColor: transaction.category.color ?? '#000' }}
+                                                    style={{ backgroundColor: `${transaction.category?.color}60` }}
                                                 >
                                                     <Icon
-                                                        name={transaction.category.icon ?? 'io:card'}
+                                                        name={transaction.category?.icon ?? 'io:card'}
                                                         size={18}
-                                                        color={transaction.category.color ?? '#000'}
+                                                        color={transaction.category?.color ?? '#000'}
                                                     />
                                                 </View>
                                                 <View className="flex-1">
                                                     <Text className="text-gray-900 font-medium">{transaction.description}</Text>
                                                     <Text className="text-sm text-gray-500">
-                                                        {transaction.category.name} • {formatDate(transaction.created_at)}
+                                                        {transaction.category?.name} • {formatDate(transaction.created_at)}
                                                     </Text>
                                                 </View>
                                             </View>
@@ -354,13 +354,13 @@ export default function AccountDetail() {
                         )}
                     </View>
                 ) : (
-                                         /* Statistics Section */
-                     <View className="mb-6">
-                         <AccountChart
-                             transactions={account.transactions || []}
-                             period={selectedPeriod as 'week' | 'month' | 'year'}
-                         />
-                     </View>
+                    /* Statistics Section */
+                    <View className="mb-6">
+                        <AccountChart
+                            transactions={account.transactions || []}
+                            period={selectedPeriod as 'week' | 'month' | 'year'}
+                        />
+                    </View>
                 )}
 
                 {/* Account Details */}
@@ -381,9 +381,9 @@ export default function AccountDetail() {
                         </View>
                         <View className="flex-row justify-between">
                             <Text className="text-gray-600">Dernière activité</Text>
-                                                         <Text className="text-gray-900 font-medium">
-                                 {account.transactions && account.transactions.length > 0 ? formatDate(account.transactions[0].created_at) : 'Aucune'}
-                             </Text>
+                            <Text className="text-gray-900 font-medium">
+                                {account.transactions && account.transactions.length > 0 ? formatDate(account.transactions[0].created_at) : 'Aucune'}
+                            </Text>
                         </View>
                     </View>
                 </View>

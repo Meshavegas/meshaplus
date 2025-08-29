@@ -13,7 +13,7 @@ import {
 } from 'react-native'
 import { Button } from '@/src/components/ui/Button'
 import { colors, spacing } from '@/src/theme'
-import { CreateTransactionRequest, Category } from '@/src/types'
+import { CreateTransactionRequest } from '@/src/types'
 import Select from '../Select'
 import Icon from '../Icons'
 import { isEmpty } from '@/src/utils/stringUtils'
@@ -75,7 +75,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
     try {
       const transaction: CreateTransactionRequest = {
         account_id: selectedAccount!.id,
-        categoryId: selectedCategory?.id,
+        category_id: selectedCategory?.id,
         type,
         amount: parseFloat(amount),
         description: description.trim() || undefined,

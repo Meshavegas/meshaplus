@@ -63,7 +63,7 @@ type TransactionRepository interface {
 	Delete(ctx context.Context, id uuid.UUID) error
 	GetByCategoryID(ctx context.Context, userID uuid.UUID, categoryID *uuid.UUID) ([]*entity.Transaction, error)
 	GetByAccountID(ctx context.Context, userID uuid.UUID, accountID *uuid.UUID) ([]*entity.Transaction, error)
-	GetByAccountIDWithCategoryDetails(ctx context.Context, userID uuid.UUID, accountID *uuid.UUID) ([]*entity.TransactionWithDetails, error)
+	GetByAccountIDWithCategoryDetails(ctx context.Context, userID uuid.UUID, accountID *uuid.UUID) ([]*entity.Transaction, error)
 	GetBySavingGoalID(ctx context.Context, userID uuid.UUID, savingGoalID uuid.UUID) ([]*entity.Transaction, error)
 	GetTransfers(ctx context.Context, userID uuid.UUID) ([]*entity.Transaction, error)
 	GetByDateRange(ctx context.Context, userID uuid.UUID, startDate, endDate string) ([]*entity.Transaction, error)

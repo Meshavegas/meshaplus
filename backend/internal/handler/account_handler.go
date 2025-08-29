@@ -37,7 +37,7 @@ type AccountService interface {
 }
 
 type TransactionService interface {
-	GetTransactionsByAccountID(ctx context.Context, userID, accountID uuid.UUID) ([]*entity.TransactionWithDetails, error)
+	GetTransactionsByAccountID(ctx context.Context, userID, accountID uuid.UUID) ([]*entity.Transaction, error)
 }
 
 // NewAccountHandler crée une nouvelle instance de AccountHandler

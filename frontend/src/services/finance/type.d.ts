@@ -1,10 +1,12 @@
 interface FinanceDashboard {
     accounts: Account[],
-    current_month_transactions: Transaction[],
+    current_month_transactions: AccountTransaction[],
     budgets_with_status: Budget[],
     saving_goals: SavingGoal[],
     summary: FinanceSummary
 }
+
+
 
 interface FinanceSummary {
     total_balance: number,

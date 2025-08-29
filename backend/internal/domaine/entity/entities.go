@@ -21,6 +21,7 @@ type Task struct {
 	RecurrenceRule  *string    `json:"recurrence_rule,omitempty" db:"recurrence_rule"` // daily, weekly, cron-like
 	CreatedAt       time.Time  `json:"created_at" db:"created_at"`
 	UpdatedAt       time.Time  `json:"updated_at" db:"updated_at"`
+	Category        *Category  `json:"category,omitempty" pg:"rel:has-one,fk:category_id"`
 }
 
 // Mood permet de suivre l'état d'esprit de l'utilisateur
@@ -48,43 +49,50 @@ type Account struct {
 }
 
 type Transaction struct {
-	ID           uuid.UUID  `json:"id" db:"id"`
-	UserID       uuid.UUID  `json:"user_id" db:"user_id"`
-	AccountID    *uuid.UUID `json:"account_id,omitempty" db:"account_id"`
-	CategoryID   *uuid.UUID `json:"category_id,omitempty" db:"category_id"`
-	Type         string     `json:"type" db:"type"` // income, expense, transfer, saving, refund
-	ToAccountID  *uuid.UUID `json:"to_account_id,omitempty" db:"to_account_id"`
-	SavingGoalID *uuid.UUID `json:"saving_goal_id,omitempty" db:"saving_goal_id"`
-	Amount       float64    `json:"amount" db:"amount"`
-	Description  string     `json:"description" db:"description"`
-	Date         time.Time  `json:"date" db:"date"`
-	Recurring    bool       `json:"recurring" db:"recurring"`
-	CreatedAt    time.Time  `json:"created_at" db:"created_at"`
-	UpdatedAt    time.Time  `json:"updated_at" db:"updated_at"`
+	ID           uuid.UUID   `json:"id" db:"id"`
+	UserID       uuid.UUID   `json:"user_id" db:"user_id"`
+	AccountID    *uuid.UUID  `json:"account_id,omitempty" db:"account_id"`
+	CategoryID   *uuid.UUID  `json:"category_id,omitempty" db:"category_id"`
+	Type         string      `json:"type" db:"type"` // income, expense, transfer, saving, refund
+	ToAccountID  *uuid.UUID  `json:"to_account_id,omitempty" db:"to_account_id"`
+	SavingGoalID *uuid.UUID  `json:"saving_goal_id,omitempty" db:"saving_goal_id"`
+	Amount       float64     `json:"amount" db:"amount"`
+	Description  string      `json:"description" db:"description"`
+	Date         time.Time   `json:"date" db:"date"`
+	Recurring    bool        `json:"recurring" db:"recurring"`
+	CreatedAt    time.Time   `json:"created_at" db:"created_at"`
+	UpdatedAt    time.Time   `json:"updated_at" db:"updated_at"`
+	Category     *Category   `json:"category,omitempty" pg:"rel:has-one,fk:category_id"`
+	Account      *Account    `json:"account,omitempty" pg:"rel:has-one,fk:account_id"`
+	SavingGoal   *SavingGoal `json:"saving_goal,omitempty" pg:"rel:has-one,fk:saving_goal_id"`
 }
 
 // Reminder représente un rappel ou notification intelligente
 type Reminder struct {
-	ID        uuid.UUID  `json:"id" db:"id"`
-	UserID    uuid.UUID  `json:"user_id" db:"user_id"`
-	TaskID    *uuid.UUID `json:"task_id,omitempty" db:"task_id"`
-	TransacID *uuid.UUID `json:"transac_id,omitempty" db:"transac_id"`
-	Message   string     `json:"message" db:"message"`
-	TriggerAt time.Time  `json:"trigger_at" db:"trigger_at"`
-	IsSent    bool       `json:"is_sent" db:"is_sent"`
-	CreatedAt time.Time  `json:"created_at" db:"created_at"`
+	ID          uuid.UUID    `json:"id" db:"id"`
+	UserID      uuid.UUID    `json:"user_id" db:"user_id"`
+	TaskID      *uuid.UUID   `json:"task_id,omitempty" db:"task_id"`
+	TransacID   *uuid.UUID   `json:"transac_id,omitempty" db:"transac_id"`
+	Message     string       `json:"message" db:"message"`
+	TriggerAt   time.Time    `json:"trigger_at" db:"trigger_at"`
+	IsSent      bool         `json:"is_sent" db:"is_sent"`
+	CreatedAt   time.Time    `json:"created_at" db:"created_at"`
+	Task        *Task        `json:"task,omitempty" pg:"rel:has-one,fk:task_id"`
+	Transaction *Transaction `json:"transaction,omitempty" pg:"rel:has-one,fk:transac_id"`
 }
 
 // Category représente une catégorie hiérarchique
 type Category struct {
-	ID        uuid.UUID  `json:"id" db:"id"`
-	UserID    uuid.UUID  `json:"user_id" db:"user_id"`
-	Name      string     `json:"name" db:"name"`
-	Type      string     `json:"type" db:"type"`                     // expense, revenue, task
-	ParentID  *uuid.UUID `json:"parent_id,omitempty" db:"parent_id"` // sous-catégorie
-	Icon      string     `json:"icon" db:"icon"`
-	Color     string     `json:"color" db:"color"`
-	CreatedAt time.Time  `json:"created_at" db:"created_at"`
+	ID        uuid.UUID   `json:"id" db:"id"`
+	UserID    uuid.UUID   `json:"user_id" db:"user_id"`
+	Name      string      `json:"name" db:"name"`
+	Type      string      `json:"type" db:"type"`                     // expense, revenue, task
+	ParentID  *uuid.UUID  `json:"parent_id,omitempty" db:"parent_id"` // sous-catégorie
+	Icon      string      `json:"icon" db:"icon"`
+	Color     string      `json:"color" db:"color"`
+	CreatedAt time.Time   `json:"created_at" db:"created_at"`
+	Parent    *Category   `json:"parent,omitempty" pg:"rel:has-one,fk:parent_id"`
+	Children  []*Category `json:"children,omitempty" pg:"rel:has-many,fk:parent_id"`
 }
 
 // SavingGoal représente un objectif d'épargne
@@ -100,6 +108,7 @@ type SavingGoal struct {
 	Frequency     string     `json:"frequency" db:"frequency"` // weekly, monthly, yearly, cron
 	CreatedAt     time.Time  `json:"created_at" db:"created_at"`
 	UpdatedAt     time.Time  `json:"updated_at" db:"updated_at"`
+	Account       *Account   `json:"account,omitempty" pg:"rel:has-one,fk:account_id"`
 }
 
 // Budget représente un budget mensuel ou annuel
@@ -113,6 +122,7 @@ type Budget struct {
 	Period        string    `json:"period" db:"period"` // monthly, yearly, weekly, daily
 	CreatedAt     time.Time `json:"created_at" db:"created_at"`
 	UpdatedAt     time.Time `json:"updated_at" db:"updated_at"`
+	Category      *Category `json:"category,omitempty" pg:"rel:has-one,fk:category_id"`
 }
 
 // Motivation représente une motivation
@@ -126,12 +136,13 @@ type Motivation struct {
 
 // LifeNote représente une note de vie
 type LifeNote struct {
-	ID            uuid.UUID  `json:"id" db:"id"`
-	UserID        uuid.UUID  `json:"user_id" db:"user_id"`
-	Title         string     `json:"title" db:"title"`
-	Content       string     `json:"content" db:"content"`
-	RelatedGoalID *uuid.UUID `json:"related_goal_id,omitempty" db:"related_goal_id"`
-	CreatedAt     time.Time  `json:"created_at" db:"created_at"`
+	ID            uuid.UUID   `json:"id" db:"id"`
+	UserID        uuid.UUID   `json:"user_id" db:"user_id"`
+	Title         string      `json:"title" db:"title"`
+	Content       string      `json:"content" db:"content"`
+	RelatedGoalID *uuid.UUID  `json:"related_goal_id,omitempty" db:"related_goal_id"`
+	CreatedAt     time.Time   `json:"created_at" db:"created_at"`
+	SavingGoal    *SavingGoal `json:"saving_goal,omitempty" pg:"rel:has-one,fk:related_goal_id"`
 }
 
 // Notification représente une notification

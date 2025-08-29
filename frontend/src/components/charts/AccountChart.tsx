@@ -60,11 +60,12 @@ export default function AccountChart({ transactions, period }: AccountChartProps
     const categoryMap = new Map<{label: string,color: string}, number>();
     
     transactions.forEach(transaction => {
-      const categoryName = typeof transaction.category === 'string' 
-        ? transaction.category 
-        : transaction.category.name;
-      const current = categoryMap.get({label: categoryName, color: transaction.category.color}) || 0;
-      categoryMap.set({label: categoryName, color: transaction.category.color}, current + transaction.amount);
+      const categoryName = transaction.category?.name;
+      const categoryColor = transaction.category?.color;
+      if (categoryName && categoryColor) {
+        const current = categoryMap.get({label: categoryName, color: categoryColor}) || 0;
+        categoryMap.set({label: categoryName, color: categoryColor}, current + transaction.amount);
+      }
     });
 
     const colors = ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40'];
@@ -103,7 +104,7 @@ export default function AccountChart({ transactions, period }: AccountChartProps
   };
 
   return (
-    <View className="space-y-6">
+    <View className="gap-3 flex flex-col">
       {/* Évolution du solde */}
       <View className="bg-white p-4 rounded-lg shadow-sm">
         <Text className="text-lg font-bold text-gray-900 mb-4">Évolution du solde</Text>
