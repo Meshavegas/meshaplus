@@ -45,10 +45,23 @@ func (r *BudgetRepository) GetByID(ctx context.Context, id uuid.UUID) (*entity.B
 // GetByUserID récupère tous les budgets d'un utilisateur
 func (r *BudgetRepository) GetByUserID(ctx context.Context, userID uuid.UUID) ([]*entity.Budget, error) {
 	var budgets []*entity.Budget
-	err := r.db.WithContext(ctx).Model(&budgets).Relation("Category").Where("budget.user_id = ?", userID).Order("budget.created_at DESC").Select()
+	// err := r.db.WithContext(ctx).Model(&budgets).Relation("Category").Where("budget.user_id = ?", userID).Order("budget.created_at DESC").Select()
+	err := r.db.WithContext(ctx).Model(&budgets).
+		Column("budget.id", "budget.user_id", "budget.category_id",
+			"budget.name", "budget.amount_planned", "budget.period",
+			"budget.created_at", "budget.updated_at", "budget.amount_spent").
+		Join("JOIN categories AS category ON category.id = budget.category_id").
+		ColumnExpr("category.id AS category__id, category.name AS category__name, category.type AS category__type, category.parent_id AS category__parent_id, category.icon AS category__icon, category.color AS category__color").
+		ColumnExpr("(SELECT COALESCE(SUM(t.amount), 0) FROM transactions t WHERE t.category_id = budget.category_id) AS amount_spent").
+		ColumnExpr("(SELECT COALESCE(SUM(t.amount), 0) FROM transactions t WHERE t.category_id = budget.category_id) AS amount_spent").
+		Where("budget.user_id = ?", userID).
+		Order("budget.created_at DESC").
+		Select()
+
 	if err != nil {
 		return nil, fmt.Errorf("erreur récupération budgets utilisateur: %w", err)
 	}
+
 	return budgets, nil
 }
 

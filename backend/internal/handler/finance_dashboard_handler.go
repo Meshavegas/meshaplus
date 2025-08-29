@@ -141,6 +141,23 @@ func (h *FinanceDashboardHandler) GetFinanceDashboard(w http.ResponseWriter, r *
 	}
 
 	var budgetsWithStatus []*BudgetWithStatus
+
+	//calculer amount_spent pour chaque budget
+	for _, budget := range budgets {
+		var budgetTransactions []*entity.Transaction
+		for _, tx := range currentMonthTransactions {
+			if tx.CategoryID != nil && budget.Category != nil && *tx.CategoryID == budget.CategoryID {
+				budgetTransactions = append(budgetTransactions, tx)
+			}
+		}
+		h.logger.Info("budgetTransactions", logger.Any("budgetTransactions", budgetTransactions))
+		var amountSpent float64
+		for _, tx := range budgetTransactions {
+			amountSpent += tx.Amount
+		}
+		budget.AmountSpent = amountSpent
+	}
+
 	for _, budget := range budgets {
 		budgetStatus := h.calculateBudgetStatus(budget)
 		budgetsWithStatus = append(budgetsWithStatus, budgetStatus)
