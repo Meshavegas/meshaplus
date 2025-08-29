@@ -9,11 +9,16 @@ import { AccountForm } from '@/src/components/forms/AccountFrom';
 import { TransactionForm } from '@/src/components/forms/TransactionForm';
 import BudgetForm from '@/src/components/forms/BudgetForm';
 import BudgetCard from '@/src/components/BudgetCard';
+import SavingGoalForm from '@/src/components/forms/SavingGoalForm';
+import SavingGoalCard from '@/src/components/SavingGoalCard';
+import ContributionForm from '@/src/components/forms/ContributionForm';
 import accountApi from '@/src/services/accountService/accountApi';
 import transactionApi from '@/src/services/transactionService/transactionApi';
 import categoryApi from '@/src/services/categoryService/categoryApi';
 import budgetApi from '@/src/services/budgetService/budgetApi';
-import { formatDate } from '@/src/lib/utils'; 
+import savingGoalApi from '@/src/services/savingGoalService/savingGoalApi';
+import { formatDate } from '@/src/lib/utils';
+import { SavingGoal } from '@/src/services/savingGoalService/savingGoalApi'; 
 
 
 export default function Finances() {
@@ -23,27 +28,32 @@ export default function Finances() {
   const [showAccountForm, setShowAccountForm] = useState(false);
   const [showTransactionForm, setShowTransactionForm] = useState(false);
   const [showBudgetForm, setShowBudgetForm] = useState(false);
+  const [showSavingGoalForm, setShowSavingGoalForm] = useState(false);
+  const [showContributionForm, setShowContributionForm] = useState(false);
+  const [selectedGoal, setSelectedGoal] = useState<SavingGoal | null>(null);
   const [accounts, setAccounts] = useState<any[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [savingGoals, setSavingGoals] = useState<SavingGoal[]>([]);
 
 
+  const loadData = async () => {
+    try {
+      const [financeData, accountsData, categoriesData] = await Promise.all([
+        financeApi.getFinancialSummary(),
+        accountApi.getAccounts(),
+        categoryApi.getCategories(),
+        // savingGoalApi.getSavingGoalsWithStatus()
+      ]);
+
+      setFinanceSummary(financeData);
+      setAccounts(accountsData);
+      setCategories(categoriesData);
+      // setSavingGoals(savingGoalsData);
+    } catch (error) {
+      console.error('Error loading data:', error);
+    }
+  };
   useEffect(() => {
-    const loadData = async () => {
-      try {
-        const [financeData, accountsData, categoriesData] = await Promise.all([
-          financeApi.getFinancialSummary(),
-          accountApi.getAccounts(),
-          categoryApi.getCategories(),
-          
-        ]);
-
-        setFinanceSummary(financeData);
-        setAccounts(accountsData);
-        setCategories(categoriesData);
-      } catch (error) {
-        console.error('Error loading data:', error);
-      }
-    };
 
     loadData();
   }, [])
@@ -101,6 +111,8 @@ export default function Finances() {
       // const updatedBudgets = await budgetApi.getBudgetsWithStatus();
       // setBudgets(updatedBudgets);
 
+      loadData();
+
       Alert.alert('Succès', 'Budget créé avec succès');
     } catch (error) {
       Alert.alert('Erreur', 'Erreur lors de la création du budget');
@@ -131,9 +143,65 @@ export default function Finances() {
       // const updatedBudgets = await budgetApi.getBudgetsWithStatus();
       // setBudgets(updatedBudgets);
 
+      loadData();
+
       Alert.alert('Succès', 'Budget supprimé avec succès');
     } catch (error) {
       Alert.alert('Erreur', 'Erreur lors de la suppression du budget');
+    }
+  };
+
+  // Handle saving goal creation
+  const handleCreateSavingGoal = async (goalData: any) => {
+    try {
+      await savingGoalApi.createSavingGoal(goalData);
+
+      loadData();
+
+      Alert.alert('Succès', 'Objectif d\'épargne créé avec succès');
+    } catch (error) {
+      Alert.alert('Erreur', 'Erreur lors de la création de l\'objectif d\'épargne');
+    }
+  };
+
+  // Handle saving goal update
+  const handleUpdateSavingGoal = async (id: string, goalData: any) => {
+    try {
+      await savingGoalApi.updateSavingGoal(id, goalData);
+
+      loadData();
+
+      Alert.alert('Succès', 'Objectif d\'épargne mis à jour avec succès');
+    } catch (error) {
+      Alert.alert('Erreur', 'Erreur lors de la mise à jour de l\'objectif d\'épargne');
+    }
+  };
+
+  // Handle saving goal deletion
+  const handleDeleteSavingGoal = async (id: string) => {
+    try {
+      await savingGoalApi.deleteSavingGoal(id);
+
+      loadData();
+
+      Alert.alert('Succès', 'Objectif d\'épargne supprimé avec succès');
+    } catch (error) {
+      Alert.alert('Erreur', 'Erreur lors de la suppression de l\'objectif d\'épargne');
+    }
+  };
+
+  // Handle contribution
+  const handleAddContribution = async (amount: number) => {
+    if (!selectedGoal) return;
+    
+    try {
+      await savingGoalApi.addContribution(selectedGoal.id, amount);
+
+      loadData();
+
+      Alert.alert('Succès', 'Contribution ajoutée avec succès');
+    } catch (error) {
+      Alert.alert('Erreur', 'Erreur lors de l\'ajout de la contribution');
     }
   };
 
@@ -289,40 +357,53 @@ export default function Finances() {
     <View className="mb-8">
       <SectionHeader
         title="Objectifs d'Épargne"
-        onAddPress={() => Alert.alert('Ajouter un objectif', 'Fonctionnalité à implémenter')}
+        onAddPress={() => setShowSavingGoalForm(true)}
         icon="flag"
       />
-      <View className="flex gap-2">
-        {/* Saving Goal 1 */}
-        <View className="bg-white p-4 rounded-lg shadow-sm">
-          <View className="flex-row justify-between items-center mb-2">
-            <Text className="text-gray-900 font-medium">Vacances d'été</Text>
-            <Text className="text-gray-600">$1,200 / $2,000</Text>
-          </View>
-          <View className="w-full bg-gray-200 rounded-full h-2">
-            <View className="bg-green-500 h-2 rounded-full" style={{ width: '60%' }} />
-          </View>
-          <View className="flex-row justify-between mt-2">
-            <Text className="text-xs text-gray-500">60% atteint</Text>
-            <Text className="text-xs text-gray-500">Échéance: Juin 2024</Text>
-          </View>
+      
+      {financeSummary?.saving_goals?.length === 0 ? (
+        <View className="bg-white p-8 rounded-lg shadow-sm items-center">
+          <Ionicons name="flag-outline" size={48} color="#9ca3af" />
+          <Text className="text-gray-500 mt-2 text-center">Aucun objectif d'épargne configuré</Text>
+          <TouchableOpacity
+            className="mt-4 bg-blue-600 px-4 py-2 rounded-lg"
+            onPress={() => setShowSavingGoalForm(true)}
+          >
+            <Text className="text-white font-medium">Créer votre premier objectif</Text>
+          </TouchableOpacity>
         </View>
-
-        {/* Saving Goal 2 */}
-        <View className="bg-white p-4 rounded-lg shadow-sm">
-          <View className="flex-row justify-between items-center mb-2">
-            <Text className="text-gray-900 font-medium">Fonds d'urgence</Text>
-            <Text className="text-gray-600">$3,500 / $5,000</Text>
-          </View>
-          <View className="w-full bg-gray-200 rounded-full h-2">
-            <View className="bg-blue-500 h-2 rounded-full" style={{ width: '70%' }} />
-          </View>
-          <View className="flex-row justify-between mt-2">
-            <Text className="text-xs text-gray-500">70% atteint</Text>
-            <Text className="text-xs text-gray-500">Échéance: Déc 2024</Text>
-          </View>
+      ) : (
+        <View className="space-y-2">
+          {financeSummary?.saving_goals.map((goal) => (
+            <SavingGoalCard
+              key={goal.id}
+              goal={goal}
+              onEdit={() => {
+                // TODO: Implement edit functionality
+                Alert.alert('Modifier l\'objectif', 'Fonctionnalité à implémenter');
+              }}
+              onDelete={() => {
+                Alert.alert(
+                  'Supprimer l\'objectif',
+                  `Êtes-vous sûr de vouloir supprimer l'objectif "${goal.title}" ?`,
+                  [
+                    { text: 'Annuler', style: 'cancel' },
+                    {
+                      text: 'Supprimer',
+                      style: 'destructive',
+                      onPress: () => handleDeleteSavingGoal(goal.id)
+                    }
+                  ]
+                );
+              }}
+              onContribute={() => {
+                setSelectedGoal(goal);
+                setShowContributionForm(true);
+              }}
+            />
+          ))}
         </View>
-      </View>
+      )}
     </View>
   );
 
@@ -495,6 +576,26 @@ export default function Finances() {
         onSubmit={handleCreateBudget}
         categories={categories}
       />
+
+      {/* Saving Goal Form Modal */}
+      <SavingGoalForm
+        visible={showSavingGoalForm}
+        onClose={() => setShowSavingGoalForm(false)}
+        onSubmit={handleCreateSavingGoal}
+      />
+
+      {/* Contribution Form Modal */}
+      {selectedGoal && (
+        <ContributionForm
+          visible={showContributionForm}
+          onClose={() => {
+            setShowContributionForm(false);
+            setSelectedGoal(null);
+          }}
+          onSubmit={handleAddContribution}
+          goal={selectedGoal}
+        />
+      )}
     </ScrollView>
   );
 } 

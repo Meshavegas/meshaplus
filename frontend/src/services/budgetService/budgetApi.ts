@@ -39,7 +39,14 @@ const budgetApi = {
 
   createBudget: async (budget: CreateBudgetRequest): Promise<Budget> => {
     try {
-      const response = await apiClient.post('/budgets', budget);
+      const newBudget = {
+        ...budget,
+        category_id: budget.categoryId,
+        amount_planned: budget.amountPlanned,
+        period: budget.period,
+        description: budget.description,
+      }
+      const response = await apiClient.post('/budgets', newBudget);
       return response.data.data;
     } catch (error) {
       console.error('Create budget error:', error);
